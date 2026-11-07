@@ -1,11 +1,14 @@
 /* ==========================================================
    Campaign Studio · escena 3D
-   Un portátil que, al hacer scroll, se fragmenta en un túnel de cristal
-   del que emergen las piezas publicitarias de la trayectoria.
+   Narrativa: todo nace en la pantalla y vuelve a ella.
+   00 El portátil se abre · 01 La pantalla se despliega en capas
+   02–07 Cada campaña se publica y sale proyectada de la pantalla
+   08 Las campañas orbitan el estudio · 09 Vuelven a la pantalla
    Three.js r160 · sin build, servido por import map
    ========================================================== */
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 const ready = () => window.dispatchEvent(new Event("scene-ready"));
 const canvas = document.getElementById("scene");
@@ -30,35 +33,35 @@ const POSTERS = [
   { client: "El Transportador", years: "2018 — 2020", headline: "Eventos que\nhablan dos\nidiomas.", sub: "Relaciones institucionales", motif: "diagonal", bg: "#121212", fg: "#f1ece3", accent: "#c9ab7c", image: null },
   { client: "Atelier de IA", years: "2025 — hoy", headline: "Escuchar\nmás rápido.\nDecidir mejor.", sub: "IA generativa · Prompting", motif: "iridescent", bg: "#f6f3ee", fg: "#121318", accent: "#a8885a", image: null }
 ];
+const NP = POSTERS.length;
 
-/* ---------- Estados por sección ---------- */
-// e1: estallido · e2: túnel · pv: piezas visibles · focus: x de la pieza (para móvil) · fade: opacidad del lienzo
-const PZ = (k) => -6 - k * 6;
-const SIDE = (k) => (k % 2 === 0 ? 1 : -1);
+/* ---------- Cámara por sección ---------- */
 const KEYS = [
-  { cam: [0, 2.3, 7.4], look: [-1.25, 0.05, 0], e1: 0, e2: 0, pv: 0, focus: 0, fade: 1 },
-  { cam: [0, 1.5, 8.6], look: [0, 0.9, -2], e1: 1, e2: 0, pv: 0, focus: 0, fade: 1 }
+  { cam: [0, 2.3, 7.4], look: [-1.25, 0.05, 0], fade: 1 },      // 00 inicio
+  { cam: [3.6, 2.5, 6.6], look: [0.15, 1.25, 0.3], fade: 1 },   // 01 perfil (capas)
 ];
-for (let k = 0; k < POSTERS.length; k++) {
-  const s = SIDE(k);
-  KEYS.push({ cam: [-s * 0.25, 1.15, PZ(k) + 4.6], look: [s * 0.25, 1.0, PZ(k)], e1: 1, e2: 1, pv: 1, focus: s * 1.35, fade: 1 });
+for (let k = 0; k < NP; k++) {
+  KEYS.push({ cam: [-0.9 + k * 0.12, 2.1, 8.0 - k * 0.05], look: [0.35, 1.05, 0.5], fade: 1 }); // 02–07 campañas
 }
-KEYS.push({ cam: [0, 1.3, -30], look: [0, 1.1, -40], e1: 1, e2: 1, pv: 1, focus: 0, fade: 0.55 });
-KEYS.push({ cam: [0, 2.0, 7.4], look: [1.45, 0.55, 0], e1: 0, e2: 0, pv: 0, focus: 0, fade: 1 });
+KEYS.push({ cam: [0, 3.6, 10.4], look: [0, 1.7, -1.0], fade: 0.6 });   // 08 IA
+KEYS.push({ cam: [0, 2.0, 7.4], look: [1.45, 0.55, 0], fade: 1 });     // 09 contacto
+const ROOM_FIRST_PIECE = 2;
+const ROOM_LAB = 2 + NP;
+const ROOM_CONTACT = ROOM_LAB + 1;
 
-/* ---------- Dimensiones del portátil ---------- */
-const W = 3.0;        // ancho
-const D = 2.05;       // fondo de la base
-const T = 0.11;       // grosor base
-const LH = 1.95;      // alto de la tapa
-const LT = 0.055;     // grosor tapa
-const OPEN = -0.3;    // ángulo abierto (rad)
-const CLOSED = Math.PI / 2;
+/* ---------- Portátil ---------- */
+const W = 3.0, D = 2.05, T = 0.1, LH = 1.95, LT = 0.05;
+const OPEN = -0.3, CLOSED = Math.PI / 2 - 0.02;
+const SCR_W = W - 0.12, SCR_H = LH - 0.12;
+
+/* ---------- Carrusel ---------- */
+const CAR_R = 3.3, CAR_Y = 1.35, CAR_Z = -0.4, THETA0 = 0.95;
+// Muro curvo de campañas publicadas, detrás del portátil
+const WALL_R = 5.4, WALL_CZ = 0.9, WALL_Y = 2.55, WALL_STEP = 0.255, WALL_SCALE = 0.82;
 
 /* ==========================================================
-   Texturas en canvas
+   Utilidades de dibujo
    ========================================================== */
-
 function roundRect(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);
@@ -76,7 +79,45 @@ function grain(g, w, h, amount, light) {
   }
 }
 
-/* --- Pantalla: panel de marketing animado --- */
+function wrapText(g, text, x, y, maxW, lh) {
+  let line = "";
+  let yy = y;
+  text.split(" ").forEach((wd) => {
+    const test = line ? line + " " + wd : wd;
+    if (g.measureText(test).width > maxW && line) { g.fillText(line, x, yy); line = wd; yy += lh; }
+    else line = test;
+  });
+  g.fillText(line, x, yy);
+  return { x: x + g.measureText(line).width, y: yy };
+}
+
+/* ==========================================================
+   Pantalla
+   ========================================================== */
+const SW = 1024, SH = Math.round(1024 * (SCR_H / SCR_W));
+const PAD = 22;
+
+// Rectángulos de cada capa del panel (en píxeles de la pantalla)
+function dashRects() {
+  const x0 = PAD, y0 = PAD, w = SW - PAD * 2, h = SH - PAD * 2;
+  const sb = 150;
+  const cx = x0 + sb + 24, cw = w - sb - 48;
+  const kw = (cw - 3 * 12) / 4;
+  const gy = y0 + 190, gh = h - 190 - 20, gw = cw * 0.62;
+  return {
+    sidebar: [x0, y0, sb, h],
+    header: [cx, y0 + 14, cw, 64],
+    kpi0: [cx, y0 + 88, kw, 86],
+    kpi1: [cx + (kw + 12), y0 + 88, kw, 86],
+    kpi2: [cx + 2 * (kw + 12), y0 + 88, kw, 86],
+    kpi3: [cx + 3 * (kw + 12), y0 + 88, kw, 86],
+    chart: [cx, gy, gw, gh],
+    ai: [cx + gw + 12, gy, cw - gw - 12, gh]
+  };
+}
+const LAYERS = ["sidebar", "header", "kpi0", "kpi1", "kpi2", "kpi3", "chart", "ai"];
+const LAYER_DEPTH = { sidebar: 0, header: 1, kpi0: 2, kpi1: 2, kpi2: 2, kpi3: 2, chart: 3, ai: 4 };
+
 const PROMPT_LOOP = [
   "Analiza 200 comentarios y agrúpalos en 5 tensiones de la audiencia…",
   "Propón un calendario de 4 semanas con tono propio por red…",
@@ -84,21 +125,143 @@ const PROMPT_LOOP = [
   "Resume los KPIs del mes en 3 hallazgos y 3 decisiones…"
 ];
 
-function drawScreen(g, SW, SH, mode, t) {
-  // marco
+function typed(t, period) {
+  const idx = Math.floor(t / period) % PROMPT_LOOP.length;
+  const full = PROMPT_LOOP[idx];
+  return full.slice(0, Math.floor(((t % period) / (period * 0.65)) * full.length));
+}
+
+// Dibuja una capa del panel en su propio canvas (origen 0,0)
+function drawLayer(name, g, w, h, t) {
+  g.clearRect(0, 0, w, h);
+  if (name === "sidebar") {
+    g.fillStyle = "#121419"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#c9ab7c"; g.fillRect(20, 20, 34, 34);
+    g.fillStyle = "#121419"; g.font = `500 16px ${FONT_DISPLAY}`; g.fillText("AB", 25, 43);
+    ["Campañas", "Audiencias", "IA Studio", "KPIs", "Marca", "Prensa"].forEach((it, i) => {
+      const yy = 92 + i * 34;
+      if (i === 0) { g.fillStyle = "rgba(201,171,124,0.16)"; g.fillRect(10, yy - 20, w - 20, 30); }
+      g.fillStyle = i === 0 ? "#f3ede2" : "#8d929b";
+      g.font = `400 13px ${FONT_SANS}`;
+      g.fillText(it, 22, yy);
+    });
+  } else if (name === "header") {
+    g.fillStyle = "#f3f2ef"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#101216"; g.font = `italic 400 30px ${FONT_DISPLAY}`; g.fillText("Campaign Studio", 0, 32);
+    g.fillStyle = "#737983"; g.font = `400 12px ${FONT_MONO}`; g.fillText("ADRIANA BELLO · MARKETING & COMUNICACIÓN", 0, 54);
+    const live = 0.5 + 0.5 * Math.sin(t * 4);
+    g.fillStyle = `rgba(168,136,90,${0.4 + live * 0.6})`; g.fillRect(w - 92, 20, 8, 8);
+    g.fillStyle = "#101216"; g.fillText("EN VIVO", w - 76, 28);
+  } else if (name.startsWith("kpi")) {
+    const i = +name[3];
+    const [label, val] = [["COMUNIDAD", "100K+"], ["TRAYECTORIA", "7 años"], ["ORGANIZACIONES", "5"], ["PAÍSES", "3"]][i];
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
+    g.strokeStyle = "rgba(16,18,22,0.12)"; g.strokeRect(0.5, 0.5, w - 1, h - 1);
+    g.fillStyle = "#737983"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText(label, 14, 24);
+    g.fillStyle = "#101216"; g.font = `400 34px ${FONT_DISPLAY}`; g.fillText(val, 14, 66);
+    g.fillStyle = "#a8885a"; g.fillRect(0, h - 3, w * (0.35 + 0.15 * i), 3);
+  } else if (name === "chart") {
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#737983"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("ENGAGEMENT · ALCANCE", 14, 24);
+    g.strokeStyle = "rgba(16,18,22,0.07)"; g.lineWidth = 1;
+    for (let i = 1; i < 5; i++) { const yy = 40 + ((h - 60) / 4) * i; g.beginPath(); g.moveTo(14, yy); g.lineTo(w - 14, yy); g.stroke(); }
+    const plot = (amp, phase, color, lw) => {
+      g.strokeStyle = color; g.lineWidth = lw; g.beginPath();
+      for (let i = 0; i <= 60; i++) {
+        const px = 14 + ((w - 28) / 60) * i;
+        const base = h - 24 - (i / 60) * (h - 90) * 0.75;
+        const py = base - Math.sin(i * 0.35 + t * 1.4 + phase) * amp - Math.sin(i * 0.11 + phase) * amp * 0.8;
+        i ? g.lineTo(px, py) : g.moveTo(px, py);
+      }
+      g.stroke();
+    };
+    plot(10, 0, "#101216", 2);
+    plot(8, 2, "#a8885a", 2.5);
+  } else if (name === "ai") {
+    g.fillStyle = "#121419"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#c9ab7c"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("IA · PROMPT", 14, 24);
+    g.fillStyle = "#d8dbe0"; g.font = `400 13px ${FONT_MONO}`;
+    const end = wrapText(g, typed(t, 5), 14, 54, w - 28, 20);
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = "#c9ab7c"; g.fillRect(end.x + 2, end.y - 12, 7, 15); }
+  }
+}
+
+// Fondo de la pantalla según el modo
+function drawScreenBase(g, mode, t, info) {
   g.fillStyle = "#0b0c0f";
   g.fillRect(0, 0, SW, SH);
-  const pad = 22;
-  const x0 = pad, y0 = pad, w = SW - pad * 2, h = SH - pad * 2;
+  const x0 = PAD, y0 = PAD, w = SW - PAD * 2, h = SH - PAD * 2;
   g.save();
   roundRect(g, x0, y0, w, h, 6);
   g.clip();
   g.fillStyle = "#f3f2ef";
   g.fillRect(x0, y0, w, h);
 
-  if (mode === "contact") {
-    g.fillStyle = "#f3f2ef";
+  if (mode === "dash") {
+    // huecos de las capas (visibles cuando se despliegan)
+    const R = dashRects();
+    g.strokeStyle = "rgba(168,136,90,0.35)";
+    g.setLineDash([5, 5]);
+    LAYERS.forEach((n) => { const [x, y, ww, hh] = R[n]; g.strokeRect(x + 0.5, y + 0.5, ww - 1, hh - 1); });
+    g.setLineDash([]);
+  } else if (mode === "publish") {
+    const { k, posterCanvas, since } = info;
+    const p = POSTERS[k];
+    // miniatura de la pieza
+    const th = h - 80, tw = th * 0.75;
+    g.fillStyle = "#d9cdb8";
+    g.fillRect(x0 + 38, y0 + 38, tw + 8, th + 8);
+    g.drawImage(posterCanvas, x0 + 42, y0 + 42, tw, th);
+    const tx = x0 + 42 + tw + 48;
+    const tw2 = x0 + w - 40 - tx;
+    g.fillStyle = "#a8885a";
+    g.font = `500 13px ${FONT_MONO}`;
+    g.fillText(`CAMPAÑA ${String(k + 1).padStart(2, "0")} / ${String(NP).padStart(2, "0")}`, tx, y0 + 66);
+    g.fillStyle = "#101216";
+    g.font = `400 46px ${FONT_DISPLAY}`;
+    g.fillText(p.client, tx, y0 + 124);
+    g.fillStyle = "#737983";
+    g.font = `400 14px ${FONT_MONO}`;
+    g.fillText(p.sub.toUpperCase() + " · " + p.years, tx, y0 + 156);
+    // progreso de publicación
+    const prog = Math.min(1, Math.max(0, (t - since) / 2.2));
+    g.fillStyle = "rgba(16,18,22,0.1)";
+    g.fillRect(tx, y0 + 200, tw2, 4);
+    g.fillStyle = "#101216";
+    g.fillRect(tx, y0 + 200, tw2 * prog, 4);
+    g.font = `500 13px ${FONT_MONO}`;
+    g.fillText(prog < 1 ? `PUBLICANDO… ${Math.round(prog * 100)}%` : "PUBLICADA ✓", tx, y0 + 232);
+    // canales
+    ["Instagram", "X", "Facebook", "LinkedIn"].forEach((ch, i) => {
+      const done = prog > (i + 1) / 4.4;
+      const yy = y0 + 290 + i * 44;
+      g.strokeStyle = "rgba(16,18,22,0.12)";
+      g.beginPath(); g.moveTo(tx, yy + 14); g.lineTo(tx + tw2, yy + 14); g.stroke();
+      g.fillStyle = "#101216";
+      g.font = `400 18px ${FONT_SANS}`;
+      g.fillText(ch, tx, yy);
+      g.fillStyle = done ? "#a8885a" : "rgba(16,18,22,0.25)";
+      g.font = `500 13px ${FONT_MONO}`;
+      g.textAlign = "right";
+      g.fillText(done ? "EN LÍNEA ●" : "EN COLA ○", tx + tw2, yy);
+      g.textAlign = "left";
+    });
+  } else if (mode === "studio") {
+    g.fillStyle = "#101216";
     g.fillRect(x0, y0, w, h);
+    g.fillStyle = "#c9ab7c";
+    g.font = `500 14px ${FONT_MONO}`;
+    g.fillText("IA · PROMPT STUDIO", x0 + 50, y0 + 70);
+    g.fillStyle = "rgba(201,171,124,0.3)";
+    g.fillRect(x0 + 50, y0 + 88, w - 100, 1);
+    g.fillStyle = "#eae6de";
+    g.font = `italic 400 44px ${FONT_DISPLAY}`;
+    const end = wrapText(g, typed(t, 6), x0 + 50, y0 + 160, w - 100, 56);
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = "#c9ab7c"; g.fillRect(end.x + 6, end.y - 34, 4, 42); }
+    g.fillStyle = "#737983";
+    g.font = `400 13px ${FONT_MONO}`;
+    g.fillText("LA IA ACELERA · EL CRITERIO FIRMA", x0 + 50, y0 + h - 50);
+  } else if (mode === "contact") {
     g.fillStyle = "#a8885a";
     g.font = `500 15px ${FONT_MONO}`;
     g.textAlign = "center";
@@ -111,121 +274,9 @@ function drawScreen(g, SW, SH, mode, t) {
     g.fillStyle = "#737983";
     g.font = `400 14px ${FONT_MONO}`;
     g.fillText("INCORPORACIÓN INMEDIATA · PRESENCIAL O HÍBRIDO", SW / 2, y0 + h * 0.76);
-    const blink = Math.floor(t * 2) % 2 === 0;
-    if (blink) { g.fillStyle = "#a8885a"; g.fillRect(SW / 2 + 190, y0 + h * 0.645, 12, 24); }
-    g.restore();
     g.textAlign = "left";
-    return;
   }
-
-  // barra lateral
-  const sb = 150;
-  g.fillStyle = "#121419";
-  g.fillRect(x0, y0, sb, h);
-  g.fillStyle = "#c9ab7c";
-  g.fillRect(x0 + 20, y0 + 20, 34, 34);
-  g.fillStyle = "#121419";
-  g.font = `500 16px ${FONT_DISPLAY}`;
-  g.fillText("AB", x0 + 25, y0 + 43);
-  const items = ["Campañas", "Audiencias", "IA Studio", "KPIs", "Marca", "Prensa"];
-  g.font = `400 13px ${FONT_SANS}`;
-  items.forEach((it, i) => {
-    const yy = y0 + 92 + i * 34;
-    if (i === 0) { g.fillStyle = "rgba(201,171,124,0.16)"; g.fillRect(x0 + 10, yy - 20, sb - 20, 30); }
-    g.fillStyle = i === 0 ? "#f3ede2" : "#8d929b";
-    g.fillText(it, x0 + 22, yy);
-  });
-
-  // cabecera
-  const cx = x0 + sb + 24;
-  const cw = w - sb - 48;
-  g.fillStyle = "#101216";
-  g.font = `italic 400 30px ${FONT_DISPLAY}`;
-  g.fillText("Campaign Studio", cx, y0 + 46);
-  g.fillStyle = "#737983";
-  g.font = `400 12px ${FONT_MONO}`;
-  g.fillText("ADRIANA BELLO · MARKETING & COMUNICACIÓN", cx, y0 + 68);
-  const live = 0.5 + 0.5 * Math.sin(t * 4);
-  g.fillStyle = `rgba(168,136,90,${0.4 + live * 0.6})`;
-  g.fillRect(cx + cw - 92, y0 + 34, 8, 8);
-  g.fillStyle = "#101216";
-  g.fillText("EN VIVO", cx + cw - 76, y0 + 42);
-
-  // KPIs
-  const kpis = [["COMUNIDAD", "100K+"], ["TRAYECTORIA", "7 años"], ["ORGANIZACIONES", "5"], ["PAÍSES", "3"]];
-  const kw = (cw - 3 * 12) / 4;
-  kpis.forEach(([label, val], i) => {
-    const kx = cx + i * (kw + 12), ky = y0 + 88;
-    g.fillStyle = "#ffffff";
-    g.fillRect(kx, ky, kw, 86);
-    g.strokeStyle = "rgba(16,18,22,0.1)";
-    g.strokeRect(kx + 0.5, ky + 0.5, kw - 1, 85);
-    g.fillStyle = "#737983";
-    g.font = `400 10.5px ${FONT_MONO}`;
-    g.fillText(label, kx + 14, ky + 24);
-    g.fillStyle = "#101216";
-    g.font = `400 34px ${FONT_DISPLAY}`;
-    g.fillText(val, kx + 14, ky + 66);
-    g.fillStyle = "#a8885a";
-    g.fillRect(kx, ky + 84, kw * (0.35 + 0.15 * i), 2);
-  });
-
-  // gráfico de engagement
-  const gx = cx, gy = y0 + 190, gw = cw * 0.62, gh = h - 190 - 20;
-  g.fillStyle = "#ffffff";
-  g.fillRect(gx, gy, gw, gh);
-  g.fillStyle = "#737983";
-  g.font = `400 10.5px ${FONT_MONO}`;
-  g.fillText("ENGAGEMENT · ALCANCE", gx + 14, gy + 24);
-  g.strokeStyle = "rgba(16,18,22,0.07)";
-  g.lineWidth = 1;
-  for (let i = 1; i < 5; i++) {
-    const yy = gy + 40 + ((gh - 60) / 4) * i;
-    g.beginPath(); g.moveTo(gx + 14, yy); g.lineTo(gx + gw - 14, yy); g.stroke();
-  }
-  const plot = (amp, phase, color, width) => {
-    g.strokeStyle = color;
-    g.lineWidth = width;
-    g.beginPath();
-    for (let i = 0; i <= 60; i++) {
-      const px = gx + 14 + ((gw - 28) / 60) * i;
-      const base = gy + gh - 24 - (i / 60) * (gh - 90) * 0.75;
-      const py = base - Math.sin(i * 0.35 + t * 1.4 + phase) * amp - Math.sin(i * 0.11 + phase) * amp * 0.8;
-      i ? g.lineTo(px, py) : g.moveTo(px, py);
-    }
-    g.stroke();
-  };
-  plot(10, 0, "#101216", 2);
-  plot(8, 2, "#a8885a", 2.5);
-
-  // tarjeta IA
-  const ax = gx + gw + 12, aw = cw - gw - 12;
-  g.fillStyle = "#121419";
-  g.fillRect(ax, gy, aw, gh);
-  g.fillStyle = "#c9ab7c";
-  g.font = `400 10.5px ${FONT_MONO}`;
-  g.fillText("IA · PROMPT", ax + 14, gy + 24);
-  const idx = Math.floor(t / 5) % PROMPT_LOOP.length;
-  const full = PROMPT_LOOP[idx];
-  const shown = full.slice(0, Math.floor(((t % 5) / 3.2) * full.length));
-  g.fillStyle = "#d8dbe0";
-  g.font = `400 13px ${FONT_MONO}`;
-  const words = shown.split(" ");
-  let line = "", ly = gy + 54;
-  const maxW = aw - 28;
-  words.forEach((wd) => {
-    const test = line ? line + " " + wd : wd;
-    if (g.measureText(test).width > maxW) { g.fillText(line, ax + 14, ly); line = wd; ly += 20; }
-    else line = test;
-  });
-  g.fillText(line, ax + 14, ly);
-  if (Math.floor(t * 2.5) % 2 === 0) {
-    g.fillStyle = "#c9ab7c";
-    g.fillRect(ax + 16 + g.measureText(line).width, ly - 12, 7, 15);
-  }
-
   g.restore();
-  // cámara del marco
   g.fillStyle = "#24272e";
   g.beginPath(); g.arc(SW / 2, 11, 3.5, 0, Math.PI * 2); g.fill();
 }
@@ -411,50 +462,6 @@ function makeRadialTexture(inner, outer) {
   return tex;
 }
 
-/* ==========================================================
-   Fragmentación: triángulos sobre una rejilla con jitter
-   ========================================================== */
-function makeShards(width, height, cols, rows, depth, materials) {
-  const pts = [];
-  for (let r = 0; r <= rows; r++) {
-    pts[r] = [];
-    for (let c = 0; c <= cols; c++) {
-      let x = (c / cols) * width;
-      let y = (r / rows) * height;
-      const jx = (width / cols) * 0.38, jy = (height / rows) * 0.38;
-      if (c > 0 && c < cols) x += (Math.random() - 0.5) * 2 * jx;
-      if (r > 0 && r < rows) y += (Math.random() - 0.5) * 2 * jy;
-      pts[r][c] = new THREE.Vector2(x, y);
-    }
-  }
-  const shards = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const a = pts[r][c], b = pts[r][c + 1], cc = pts[r + 1][c + 1], d = pts[r + 1][c];
-      const tris = Math.random() < 0.5 ? [[a, b, cc], [a, cc, d]] : [[a, b, d], [b, cc, d]];
-      for (const tri of tris) {
-        const shape = new THREE.Shape(tri);
-        const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-        const uv = geo.attributes.uv;
-        for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / width, uv.getY(i) / height);
-        // grupos: 0 = cara trasera, 1 = cara frontal, 2 = cantos
-        const total = geo.attributes.position.count;
-        geo.clearGroups();
-        geo.addGroup(0, 3, 1);
-        geo.addGroup(3, 3, 0);
-        geo.addGroup(6, total - 6, 2);
-        const cx = (tri[0].x + tri[1].x + tri[2].x) / 3;
-        const cy = (tri[0].y + tri[1].y + tri[2].y) / 3;
-        geo.translate(-cx, -cy, -depth / 2);
-        geo.computeVertexNormals();
-        const mesh = new THREE.Mesh(geo, materials);
-        mesh.castShadow = true;
-        shards.push({ mesh, cx, cy });
-      }
-    }
-  }
-  return shards;
-}
 
 /* ==========================================================
    Escena
@@ -470,101 +477,129 @@ function init() {
   }
 
   const isMobile = () => mqMobile.matches;
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile() ? 1.5 : 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BG);
-  scene.fog = new THREE.Fog(BG, 7, 26);
+  scene.fog = new THREE.Fog(BG, 13, 32);
 
-  const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 90);
+  const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 80);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
   pmrem.dispose();
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xd5d9de, 1.25));
-  const key = new THREE.DirectionalLight(0xfff6ea, 1.6);
-  key.position.set(3, 7, 5);
+  /* ---------- Luz de estudio ---------- */
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8dce1, 1.2));
+  const key = new THREE.DirectionalLight(0xfff5e6, 1.5);
+  key.position.set(4, 9, 6);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30 });
+  key.shadow.bias = -0.0004;
+  key.shadow.radius = 5;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xe9efff, 0.6);
-  fill.position.set(-5, 2, 3);
+  const fill = new THREE.DirectionalLight(0xe9efff, 0.55);
+  fill.position.set(-5, 2, 4);
   scene.add(fill);
 
-  /* ---------- Materiales del portátil ---------- */
-  const SW = 1024, SH = Math.round(1024 * (LH / W));
-  const screenCanvas = document.createElement("canvas");
-  screenCanvas.width = SW; screenCanvas.height = SH;
-  const sg = screenCanvas.getContext("2d");
-  const screenTex = new THREE.CanvasTexture(screenCanvas);
-  screenTex.colorSpace = THREE.SRGBColorSpace;
-  screenTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  drawScreen(sg, SW, SH, "dash", 0);
+  // Suelo invisible que solo recibe sombras: se funde con el fondo
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ color: 0x1d2026, opacity: 0.1 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
 
-  const alu = new THREE.MeshStandardMaterial({ color: 0xd2bb95, metalness: 0.85, roughness: 0.3, envMapIntensity: 1.1 });
-  const aluEdge = new THREE.MeshStandardMaterial({ color: 0xb59d77, metalness: 0.9, roughness: 0.25, envMapIntensity: 1.2 });
-  const screenMat = new THREE.MeshBasicMaterial({ map: screenTex });
-  const deckTex = makeDeckTexture();
-  deckTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  const deckMat = new THREE.MeshStandardMaterial({ map: deckTex, metalness: 0.55, roughness: 0.38, envMapIntensity: 0.9 });
-
-  // [frontal, trasera, cantos]
-  const lidShards = makeShards(W, LH, 8, 5, LT, [screenMat, alu, aluEdge]).map((s) => ({ ...s, part: "lid" }));
-  const baseShards = makeShards(W, D, 8, 5, T, [deckMat, alu, aluEdge]).map((s) => ({ ...s, part: "base" }));
-  const shards = [...lidShards, ...baseShards];
-
-  const shardGroup = new THREE.Group();
-  scene.add(shardGroup);
-
-  // Datos de explosión por fragmento
-  const tmpV = new THREE.Vector3();
-  shards.forEach((s, i) => {
-    shardGroup.add(s.mesh);
-    if (s.part === "lid") s.local = new THREE.Vector3(s.cx - W / 2, s.cy, 0);
-    else s.local = new THREE.Vector3(s.cx - W / 2, s.cy - D / 2, 0);
-
-    // posición aproximada montada (portátil abierto) para calcular la dirección del estallido
-    const approx = s.part === "lid"
-      ? new THREE.Vector3(s.local.x, T + s.local.y * 0.95, -D / 2 - s.local.y * 0.3)
-      : new THREE.Vector3(s.local.x, T / 2, -s.local.y);
-    const dir = tmpV.copy(approx).sub(new THREE.Vector3(0, 0.5, -0.4)).normalize();
-    dir.x += (Math.random() - 0.5) * 0.6;
-    dir.y += (Math.random() - 0.2) * 0.8;
-    dir.z += (Math.random() - 0.3) * 0.8;
-    dir.normalize();
-    s.burst = approx.clone().addScaledVector(dir, 1.4 + Math.random() * 2.6);
-
-    // posición en el túnel (paredes laterales + techo, dejando libre el pasillo)
-    const side = Math.random() < 0.5 ? -1 : 1;
-    const roof = Math.random() < 0.25;
-    s.field = new THREE.Vector3(
-      roof ? (Math.random() - 0.5) * 5 : side * (2.4 + Math.random() * 3.4),
-      roof ? 2.9 + Math.random() * 1.8 : -0.8 + Math.random() * 3.8,
-      4 - Math.random() * 50
-    );
-    s.axis = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-    s.burstAngle = (Math.random() - 0.5) * Math.PI * 3;
-    s.spin = (Math.random() - 0.5) * 0.7;
-    // la grieta se propaga desde el centro de la pantalla
-    const dCenter = s.part === "lid" ? Math.hypot(s.local.x, s.local.y - LH / 2) : 1.2 + Math.hypot(s.local.x, s.local.y) * 0.5;
-    s.delay = Math.min(1, dCenter / 2.2) * 0.45 + Math.random() * 0.1;
-    s.delay2 = Math.random() * 0.35;
-  });
-
-  // Sombra de contacto bajo el portátil
+  const radial = (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 128;
+    const g = c.getContext("2d");
+    const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grd.addColorStop(0, "rgba(30,32,38,0.32)");
+    grd.addColorStop(1, "rgba(30,32,38,0)");
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })();
   const contactShadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(5.2, 3.6),
-    new THREE.MeshBasicMaterial({ map: makeRadialTexture("rgba(30,32,38,0.35)", "rgba(30,32,38,0)"), transparent: true, depthWrite: false })
+    new THREE.PlaneGeometry(4.6, 3.4),
+    new THREE.MeshBasicMaterial({ map: radial, transparent: true, depthWrite: false })
   );
   contactShadow.rotation.x = -Math.PI / 2;
-  contactShadow.position.set(0, -0.02, -0.3);
+  contactShadow.position.set(0, 0.002, -0.2);
   scene.add(contactShadow);
+
+  /* ---------- Portátil ---------- */
+  const alu = new THREE.MeshStandardMaterial({ color: 0xd2bb95, metalness: 0.85, roughness: 0.3, envMapIntensity: 1.1 });
+  const laptop = new THREE.Group();
+  scene.add(laptop);
+
+  const base = new THREE.Mesh(new RoundedBoxGeometry(W, T, D, 4, 0.035), alu);
+  base.position.y = T / 2;
+  base.castShadow = true;
+  laptop.add(base);
+
+  const deckTex = makeDeckTexture();
+  deckTex.anisotropy = maxAniso;
+  const deck = new THREE.Mesh(
+    new THREE.PlaneGeometry(W - 0.06, D - 0.06),
+    new THREE.MeshStandardMaterial({ map: deckTex, metalness: 0.5, roughness: 0.4 })
+  );
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.y = T + 0.001;
+  laptop.add(deck);
+
+  const lidPivot = new THREE.Group();
+  lidPivot.position.set(0, T + LT / 2, -D / 2 + LT / 2);
+  laptop.add(lidPivot);
+  const lid = new THREE.Mesh(new RoundedBoxGeometry(W, LH, LT, 4, 0.03), alu);
+  lid.position.y = LH / 2;
+  lid.castShadow = true;
+  lidPivot.add(lid);
+
+  const screenRoot = new THREE.Group();
+  screenRoot.position.set(0, LH / 2, LT / 2 + 0.002);
+  lidPivot.add(screenRoot);
+
+  const scrCanvas = document.createElement("canvas");
+  scrCanvas.width = SW; scrCanvas.height = SH;
+  const sg = scrCanvas.getContext("2d");
+  const scrTex = new THREE.CanvasTexture(scrCanvas);
+  scrTex.colorSpace = THREE.SRGBColorSpace;
+  scrTex.anisotropy = maxAniso;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(SCR_W, SCR_H), new THREE.MeshBasicMaterial({ map: scrTex }));
+  screenRoot.add(screen);
+
+  /* ---------- Capas del panel (vista desplegada) ---------- */
+  const R = dashRects();
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0xa8885a, transparent: true, opacity: 0 });
+  const layers = LAYERS.map((name) => {
+    const [x, y, w, h] = R[name];
+    const c = document.createElement("canvas");
+    c.width = Math.round(w); c.height = Math.round(h);
+    const g = c.getContext("2d");
+    drawLayer(name, g, c.width, c.height, 0);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = maxAniso;
+    const pw = (w / SW) * SCR_W, ph = (h / SH) * SCR_H;
+    const geo = new THREE.PlaneGeometry(pw, ph);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
+    mesh.add(edges);
+    const rest = new THREE.Vector2(((x + w / 2) / SW - 0.5) * SCR_W, (0.5 - (y + h / 2) / SH) * SCR_H);
+    screenRoot.add(mesh);
+    return { name, mesh, g, c, tex, rest, depth: LAYER_DEPTH[name], animated: ["header", "chart", "ai"].includes(name) };
+  });
 
   /* ---------- Piezas publicitarias ---------- */
   const PW = 768, PH = 1024;
-  const posterFrameMat = new THREE.MeshStandardMaterial({ color: 0xd2bb95, metalness: 0.85, roughness: 0.3 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xd2bb95, metalness: 0.85, roughness: 0.3 });
   const posters = POSTERS.map((p, k) => {
     const c = document.createElement("canvas");
     c.width = PW; c.height = PH;
@@ -572,38 +607,67 @@ function init() {
     drawPoster(g, PW, PH, p, k, null);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    tex.anisotropy = maxAniso;
     if (p.image) {
       const img = new Image();
       img.onload = () => { drawPoster(g, PW, PH, p, k, img); tex.needsUpdate = true; };
       img.src = p.image;
     }
     const group = new THREE.Group();
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2.0), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
-    plane.position.z = 0.012;
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.56, 2.06, 0.02), posterFrameMat);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.56, 2.06, 0.03), frameMat);
+    frame.castShadow = true;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2.0), new THREE.MeshBasicMaterial({ map: tex }));
+    plane.position.z = 0.017;
     group.add(frame, plane);
-    const s = SIDE(k);
-    group.userData = { target: new THREE.Vector3(s * 1.35, 1.05, PZ(k)), rotY: -s * 0.32, k };
-    group.scale.setScalar(0.001);
+    group.visible = false;
     scene.add(group);
-    return group;
+    return { group, canvas: c };
   });
 
-  /* ---------- Partículas de ambiente ---------- */
-  const PCOUNT = isMobile() ? 380 : 800;
-  const pPos = new Float32Array(PCOUNT * 3);
-  for (let i = 0; i < PCOUNT; i++) {
-    pPos[i * 3] = (Math.random() - 0.5) * 16;
-    pPos[i * 3 + 1] = -1.5 + Math.random() * 7;
-    pPos[i * 3 + 2] = 9 - Math.random() * 62;
+  /* ---------- Haz de proyección pantalla → pieza ---------- */
+  const beamGeo = new THREE.BufferGeometry();
+  beamGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(24 * 3), 3));
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0xc9ab7c, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.frustumCulled = false;
+  scene.add(beam);
+  const beamLineGeo = new THREE.BufferGeometry();
+  beamLineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(8 * 3), 3));
+  const beamLineMat = new THREE.LineBasicMaterial({ color: 0xa8885a, transparent: true, opacity: 0 });
+  const beamLines = new THREE.LineSegments(beamLineGeo, beamLineMat);
+  beamLines.frustumCulled = false;
+  scene.add(beamLines);
+
+  const SC = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  const sCorners = SC.map(() => new THREE.Vector3());
+  const pCorners = SC.map(() => new THREE.Vector3());
+  function updateBeam(poster, w) {
+    beamMat.opacity = 0.07 * w;
+    beamLineMat.opacity = 0.55 * w;
+    beam.visible = beamLines.visible = w > 0.01;
+    if (!beam.visible) return;
+    SC.forEach(([sx, sy], i) => {
+      sCorners[i].set(sx * SCR_W * 0.45, sy * SCR_H * 0.44, 0.01);
+      screenRoot.localToWorld(sCorners[i]);
+      pCorners[i].set(sx * 0.75, sy * 1.0, 0.02);
+      poster.localToWorld(pCorners[i]);
+    });
+    const pos = beamGeo.attributes.position.array;
+    let o = 0;
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      for (const v of [sCorners[i], sCorners[j], pCorners[j], sCorners[i], pCorners[j], pCorners[i]]) {
+        pos[o++] = v.x; pos[o++] = v.y; pos[o++] = v.z;
+      }
+    }
+    beamGeo.attributes.position.needsUpdate = true;
+    const lp = beamLineGeo.attributes.position.array;
+    o = 0;
+    for (let i = 0; i < 4; i++) {
+      for (const v of [sCorners[i], pCorners[i]]) { lp[o++] = v.x; lp[o++] = v.y; lp[o++] = v.z; }
+    }
+    beamLineGeo.attributes.position.needsUpdate = true;
   }
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
-  const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-    color: 0x6f747c, size: 0.022, transparent: true, opacity: 0.6, depthWrite: false
-  }));
-  scene.add(particles);
 
   /* ---------- Scroll → progreso ---------- */
   const rooms = Array.from(document.querySelectorAll("[data-room]"));
@@ -618,7 +682,7 @@ function init() {
     for (let i = 0; i < n - 1; i++) {
       if (y < roomTops[i + 1]) {
         const f = (y - roomTops[i]) / (roomTops[i + 1] - roomTops[i]);
-        return i + THREE.MathUtils.smoothstep(f, 0.4, 1.0);
+        return i + THREE.MathUtils.smoothstep(f, 0.35, 1.0);
       }
     }
     return n - 1;
@@ -644,9 +708,10 @@ function init() {
   const clock = new THREE.Clock();
   let progress = scrollProgress();
   let visible = true;
-  let lastScreen = -1;
-  let screenMode = "dash";
+  let lastDraw = -1;
   let lastFade = -1;
+  let screenKey = "";
+  let publishSince = 0;
 
   document.addEventListener("visibilitychange", () => {
     visible = !document.hidden;
@@ -654,18 +719,18 @@ function init() {
   });
 
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), vB = new THREE.Vector3();
-  const mRoot = new THREE.Matrix4(), mPart = new THREE.Matrix4(), mLocal = new THREE.Matrix4(), mTmp = new THREE.Matrix4();
-  const mBase = new THREE.Matrix4().makeTranslation(0, T / 2, 0).multiply(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-  const qRoot = new THREE.Quaternion(), qSpin = new THREE.Quaternion(), eRoot = new THREE.Euler();
-  const aPos = new THREE.Vector3(), aQuat = new THREE.Quaternion(), aScale = new THREE.Vector3();
-  const target = new THREE.Vector3();
-  const ID_Q = new THREE.Quaternion();
-  const ONE = new THREE.Vector3(1, 1, 1);
+  const S = new THREE.Vector3(), qS = new THREE.Quaternion(), nS = new THREE.Vector3();
+  const P1 = new THREE.Vector3(), P2 = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
+  const qOut = new THREE.Quaternion(), qRing = new THREE.Quaternion();
+  const dummy = new THREE.Object3D();
+  const slot0 = new THREE.Vector3(CAR_R * Math.sin(THETA0), CAR_Y, CAR_Z + CAR_R * Math.cos(THETA0));
 
   const lerpKey = (a, b, f, prop, out) => out.fromArray(KEYS[a][prop]).lerp(vB.fromArray(KEYS[b][prop]), f);
-  const lerpNum = (a, b, f, prop) => THREE.MathUtils.lerp(KEYS[a][prop], KEYS[b][prop], f);
   const clamp01 = (x) => Math.min(1, Math.max(0, x));
-  const ease = (x) => x * x * (3 - 2 * x);
+  const ease = (x) => { x = clamp01(x); return x * x * (3 - 2 * x); };
+  const slot = (theta, out, r = CAR_R, y = CAR_Y) => out.set(r * Math.sin(theta), y, CAR_Z + r * Math.cos(theta));
+  const tmp3 = new THREE.Vector3();
+  const faceDir = (pos, dir, out) => { dummy.position.copy(pos); dummy.lookAt(tmp3.copy(pos).add(dir)); out.copy(dummy.quaternion); };
 
   function frame() {
     requestAnimationFrame(frame);
@@ -680,22 +745,20 @@ function init() {
     const b = Math.min(a + 1, KEYS.length - 1);
     const f = progress - a;
 
-    const e1 = lerpNum(a, b, f, "e1");
-    const e2 = lerpNum(a, b, f, "e2");
-    const pv = lerpNum(a, b, f, "pv");
-
-    let fade = lerpNum(a, b, f, "fade");
+    const fade = THREE.MathUtils.lerp(KEYS[a].fade, KEYS[b].fade, f);
     if (Math.abs(fade - lastFade) > 0.004) { canvas.style.opacity = fade.toFixed(3); lastFade = fade; }
 
-    // Cámara
+    /* --- Cámara --- */
     lerpKey(a, b, f, "cam", camPos);
     lerpKey(a, b, f, "look", camLook);
     if (isMobile()) {
-      const focus = lerpNum(a, b, f, "focus");
-      camPos.x = focus * 0.9;
-      camLook.x = focus;
-      if (Math.abs(focus) > 0.01) { camLook.y -= 0.1; camPos.z += 2.4; }
-      else { camPos.z = camPos.z * 1.5 + (camPos.z > 0 ? 0.5 : 0); camLook.y -= 0.35; }
+      camLook.x *= 0.12;
+      camPos.x *= 0.8;
+      camPos.z = camPos.z * 1.5 + 0.5;
+      camLook.y -= 0.35;
+      const wp = clamp01(progress - 1.3) * (1 - clamp01(progress - (ROOM_LAB - 0.6)));
+      camLook.lerp(slot0, wp);
+      camPos.lerp(tmp.set(slot0.x + Math.sin(THETA0) * 5.2, slot0.y + 0.4, slot0.z + Math.cos(THETA0) * 5.2), wp);
     }
     mouseS.lerp(mouse, Math.min(1, dt * 2.5));
     camPos.x += mouseS.x * 0.25;
@@ -703,63 +766,91 @@ function init() {
     camera.position.copy(camPos);
     camera.lookAt(camLook);
 
-    // Intro: la tapa se abre
-    const intro = reduceMotion ? 1 : ease(clamp01((t - 0.9) / 2.2));
-    const lidAngle = THREE.MathUtils.lerp(CLOSED, OPEN, intro);
+    /* --- 00: el portátil se abre --- */
+    const intro = reduceMotion ? 1 : ease((t - 0.9) / 2.2);
+    lidPivot.rotation.x = THREE.MathUtils.lerp(CLOSED, OPEN, intro);
+    const sway = 1 - 0.75 * clamp01(progress);
+    laptop.rotation.y = ((Math.sin(tm * 0.3) * 0.12 + mouseS.x * 0.15) * sway) - (1 - intro) * 0.5;
 
-    // Portátil montado: raíz con giro suave
-    const calm = 1 - e1;
-    eRoot.set(mouseS.y * 0.05 * calm, (Math.sin(tm * 0.35) * 0.22 + mouseS.x * 0.25) * calm + (1 - intro) * -0.5, 0);
-    qRoot.setFromEuler(eRoot);
-    mRoot.compose(tmpV.set(0, Math.sin(tm * 0.9) * 0.03 * calm, 0), qRoot, ONE);
-    const mLid = mTmp.makeTranslation(0, T + LT / 2, -D / 2 + LT / 2).multiply(new THREE.Matrix4().makeRotationX(lidAngle));
+    /* --- 01: la pantalla se despliega en capas --- */
+    const ex = ease(progress) * (1 - ease((progress - 1) / 0.5));
+    const layerAlpha = 1 - ease((progress - 1.5) / 0.2);
+    edgeMat.opacity = 0.8 * ex;
+    layers.forEach((L) => {
+      const d = L.depth;
+      L.mesh.position.set(L.rest.x * (1 + ex * 0.16), L.rest.y * (1 + ex * 0.16), 0.003 + d * 0.0006 + ex * (0.16 + d * 0.17));
+      L.mesh.material.opacity = layerAlpha;
+      L.mesh.visible = layerAlpha > 0.01;
+    });
 
-    for (let i = 0; i < shards.length; i++) {
-      const s = shards[i];
-      mPart.multiplyMatrices(mRoot, s.part === "lid" ? mLid : mBase);
-      mLocal.compose(s.local, ID_Q, ONE);
-      mPart.multiply(mLocal);
-      mPart.decompose(aPos, aQuat, aScale);
-
-      const k1 = ease(clamp01((e1 - s.delay) / 0.5));
-      const k2 = ease(clamp01((e2 - s.delay2) / 0.65));
-      target.copy(s.burst).lerp(s.field, k2);
-      target.y += Math.sin(tm * 0.6 + i) * 0.05 * k1;
-      s.mesh.position.copy(aPos).lerp(target, k1);
-      qSpin.setFromAxisAngle(s.axis, k1 * s.burstAngle + tm * s.spin * k1);
-      s.mesh.quaternion.copy(aQuat).multiply(qSpin);
-    }
-    contactShadow.material.opacity = 1 - e1;
-
-    // Pantalla: panel de marketing en vivo o contacto
-    const mode = progress > KEYS.length - 1.5 ? "contact" : "dash";
-    if (e1 < 0.98 && (t - lastScreen > 1 / 15 || mode !== screenMode)) {
-      screenMode = mode;
-      drawScreen(sg, SW, SH, mode, t);
-      screenTex.needsUpdate = true;
-      lastScreen = t;
-    }
-
-    // Piezas publicitarias
-    for (const poster of posters) {
-      const { target: tgt, rotY, k } = poster.userData;
-      const s = ease(clamp01((pv - k * 0.05) / 0.7));
-      poster.position.set(0, 0.9, -0.5).lerp(tgt, s);
-      poster.position.y += Math.sin(tm * 0.7 + k) * 0.04 * s;
-      poster.rotation.set(Math.sin(tm * 0.5 + k) * 0.02, rotY + (1 - s) * Math.PI * 0.8 + Math.sin(tm * 0.4 + k) * 0.04, 0);
-      poster.scale.setScalar(Math.max(0.001, s));
-      poster.visible = s > 0.002;
-    }
-
-    // Partículas
-    if (!reduceMotion) {
-      const arr = pGeo.attributes.position.array;
-      for (let i = 0; i < PCOUNT; i++) {
-        arr[i * 3 + 1] += dt * 0.05;
-        if (arr[i * 3 + 1] > 5.5) arr[i * 3 + 1] = -1.5;
+    /* --- Modo de la pantalla --- */
+    let mode = "dash";
+    let kActive = 0;
+    if (progress >= ROOM_LAB + 0.7) mode = "contact";
+    else if (progress >= ROOM_LAB - 0.4) mode = "studio";
+    else if (progress >= 1.6) { mode = "publish"; kActive = Math.min(NP - 1, Math.max(0, Math.floor(progress - 1.6))); }
+    const sKey = mode + kActive;
+    if (sKey !== screenKey) { screenKey = sKey; publishSince = t; lastDraw = -1; }
+    if (t - lastDraw > 1 / 15) {
+      drawScreenBase(sg, mode, t, { k: kActive, posterCanvas: posters[kActive].canvas, since: publishSince });
+      scrTex.needsUpdate = true;
+      if (layerAlpha > 0.01) {
+        layers.forEach((L) => {
+          if (!L.animated) return;
+          drawLayer(L.name, L.g, L.c.width, L.c.height, t);
+          L.tex.needsUpdate = true;
+        });
       }
-      pGeo.attributes.position.needsUpdate = true;
+      lastDraw = t;
     }
+
+    /* --- 02–09: campañas proyectadas, carrusel, anillo y regreso --- */
+    laptop.updateMatrixWorld(true);
+    screenRoot.getWorldPosition(S);
+    screenRoot.getWorldQuaternion(qS);
+    nS.set(0, 0, 1).applyQuaternion(qS);
+    const wc = ease((progress - (ROOM_LAB + 0.3)) / 0.5);
+
+    let beamPoster = null, beamW = 0;
+    posters.forEach(({ group }, k) => {
+      const s = progress - (1.6 + k);
+      const em = ease(s / 0.4);
+      // se cuelga en el muro cuando sale la siguiente campaña (la última, al entrar en IA)
+      const mv = k < NP - 1 ? ease((s - 1) / 0.4) : ease((progress - (ROOM_LAB - 0.5)) / 0.5);
+
+      // 1) sale de la pantalla hacia el primer plano
+      slot(THETA0, P2);
+      P1.copy(S).addScaledVector(nS, 1.5).add(tmp.set(0.3, 0.3, 0));
+      const u = em, iu = 1 - u;
+      group.position.set(
+        iu * iu * S.x + 2 * iu * u * P1.x + u * u * P2.x,
+        iu * iu * S.y + 2 * iu * u * P1.y + u * u * P2.y,
+        iu * iu * S.z + 2 * iu * u * P1.z + u * u * P2.z
+      );
+      faceDir(P2, tmp.set(Math.sin(THETA0), 0, Math.cos(THETA0) + 0.9).normalize(), qOut);
+      group.quaternion.copy(qS).slerp(qOut, em);
+
+      // 2) pasa al muro de campañas publicadas
+      const tw = (k - (NP - 1) / 2) * WALL_STEP;
+      tmp.set(WALL_R * Math.sin(tw), WALL_Y, WALL_CZ - WALL_R * Math.cos(tw));
+      group.position.lerp(tmp, mv);
+      faceDir(tmp, tmp2.set(-Math.sin(tw), 0, Math.cos(tw)), qRing);
+      group.quaternion.slerp(qRing, mv);
+
+      // 3) contacto: todas vuelven a la pantalla
+      group.position.lerp(S, wc);
+      group.quaternion.slerp(qS, wc);
+      group.position.y += Math.sin(tm * 0.7 + k) * 0.03 * em * (1 - wc);
+
+      const sc = (0.18 + 0.82 * em) * THREE.MathUtils.lerp(1, WALL_SCALE, mv) * (1 - 0.82 * wc);
+      group.scale.setScalar(Math.max(0.001, sc));
+      group.visible = em > 0.002 && wc < 0.995;
+
+      const w = em * (1 - mv) * (1 - wc);
+      if (w > beamW) { beamW = w; beamPoster = group; }
+    });
+    if (beamPoster) { beamPoster.updateMatrixWorld(true); updateBeam(beamPoster, beamW); }
+    else updateBeam(null, 0);
 
     renderer.render(scene, camera);
   }
