@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Adriana Bello — Campaign Studio</title>
   <meta name="description" content="Portafolio de Adriana del Pilar Bello Guzmán: marketing, comunicación corporativa y contenido digital potenciados con IA generativa." />
-  <meta name="theme-color" content="#eceeef" />
+  <meta name="theme-color" content="#f3f3f1" />
   <meta property="og:title" content="Adriana Bello — Campaign Studio" />
   <meta property="og:description" content="Marketing, comunicación y contenido digital potenciados con IA. Una experiencia 3D interactiva." />
   <meta property="og:type" content="website" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23eceeef'/%3E%3Cpath d='M14 46h36l-4-6H18z' fill='%23b89a6a'/%3E%3Crect x='19' y='16' width='26' height='22' rx='2' fill='%2312141a'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f3f3f1'/%3E%3Cpath d='M14 46h36l-4-6H18z' fill='%23c9ccd1'/%3E%3Crect x='19' y='16' width='26' height='22' rx='2' fill='%2322385a'/%3E%3C/svg%3E" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400;1,6..96,500&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400;1,6..96,500&family=Inter+Tight:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 
   <script type="importmap">
@@ -28,9 +28,9 @@
 <body>
   <!-- Loader -->
   <div class="loader" aria-hidden="true">
-    <p class="loader__label">Campaign Studio</p>
-    <p class="loader__count"><span>0</span>%</p>
+    <p class="loader__name">Adriana <em>Bello</em></p>
     <div class="loader__bar"><i></i></div>
+    <p class="loader__label">Campaign Studio</p>
   </div>
 
   <canvas id="scene" aria-hidden="true"></canvas>
@@ -51,29 +51,25 @@
 
   <!-- HUD inferior -->
   <div class="hud-bottom" aria-hidden="true">
-    <div class="hud-bottom__left">
-      <span class="hud-dot"></span>
-      <span class="hud-section">00 · Inicio</span>
-    </div>
-    <div class="hud-bottom__center">
+    <span class="hud-section">00 · Inicio</span>
+    <div class="hud-bottom__right">
       <span class="hud-progress"><i></i></span>
       <span class="hud-pct">000</span>
     </div>
-    <div class="hud-bottom__right">40.0084° N · 3.0072° W · Tarancón, ES</div>
   </div>
 
   <main>
     <!-- 00 · HERO -->
     <section class="stage stage--hero" id="inicio" data-room="0" data-name="00 · Inicio">
       <div class="hero">
-        <p class="tag" data-scramble>Portafolio · 2026</p>
+        <p class="tag">Portafolio · 2026</p>
         <h1 class="hero__title">
-          <span class="line">Adriana</span>
-          <span class="line"><em>Bello Guzmán</em></span>
+          <span class="line"><span>Adriana</span></span>
+          <span class="line"><span><em>Bello Guzmán</em></span></span>
         </h1>
         <div class="hero__foot">
-          <p class="hero__role" data-scramble>Marketing · Comunicación · Contenido digital · IA generativa</p>
-          <p class="hero__lead">Cuento historias para marcas e instituciones. Haz scroll: la pantalla se abre en capas y cada campaña sale de ella.</p>
+          <p class="hero__role">Marketing · Comunicación · Contenido digital · IA generativa</p>
+          <p class="hero__lead">Cuento historias para marcas e instituciones. <span class="only-pointer">Pasa el ratón por el portátil y haz clic; después, haz scroll:</span><span class="only-touch">Toca el portátil y desliza hacia abajo:</span> cada campaña sale de su pantalla.</p>
         </div>
       </div>
       <a class="scroll-hint" href="#sobre-mi"><span>Scroll para abrir</span><i></i></a>
@@ -82,7 +78,7 @@
     <!-- 01 · PERFIL -->
     <section class="stage stage--split" id="sobre-mi" data-room="1" data-name="01 · Perfil">
       <article class="panel panel--left reveal">
-        <p class="panel__label" data-scramble>01 / Perfil</p>
+        <p class="panel__label">01 / Perfil</p>
         <h2 class="panel__title">Imagen pública, marca corporativa y <em>criterio</em>.</h2>
         <!-- REVISAR: texto ampliado, validar y ajustar -->
         <p class="panel__text">
@@ -99,7 +95,7 @@
         </ul>
       </article>
       <article class="panel panel--right panel--data reveal">
-        <p class="panel__label" data-scramble>Datos / Impacto</p>
+        <p class="panel__label">Datos / Impacto</p>
         <dl class="stats">
           <div><dt>Comunidad gestionada</dt><dd><span data-count="100000">0</span>+</dd></div>
           <div><dt>Años de trayectoria</dt><dd><span data-count="7">0</span></dd></div>
@@ -114,7 +110,7 @@
     <!-- 02–07 · PIEZAS -->
     <section class="stage stage--piece stage--left" id="pieza-1" data-room="2" data-name="02 · JD Sports Fashion">
       <article class="panel reveal">
-        <p class="panel__label" data-scramble>Pieza 01 · ene. 2023 — ago. 2025</p>
+        <p class="panel__label">Pieza 01 · ene. 2023 — ago. 2025</p>
         <h2 class="panel__title">Estratega de Comunicación Corporativa y Cultura</h2>
         <p class="panel__client">JD Sports Fashion · Londres, en remoto</p>
         <ul class="panel__list">
@@ -132,7 +128,7 @@
 
     <section class="stage stage--piece stage--left" id="pieza-2" data-room="3" data-name="03 · Senado de Colombia">
       <article class="panel reveal">
-        <p class="panel__label" data-scramble>Pieza 02 · ene. 2022 — dic. 2023</p>
+        <p class="panel__label">Pieza 02 · ene. 2022 — dic. 2023</p>
         <h2 class="panel__title">Community Manager y Estratega de Comunicación Corporativa</h2>
         <p class="panel__client">Senado de la República de Colombia</p>
         <ul class="panel__list">
@@ -151,7 +147,7 @@
 
     <section class="stage stage--piece stage--left" id="pieza-3" data-room="4" data-name="04 · Flash Noticias">
       <article class="panel reveal">
-        <p class="panel__label" data-scramble>Pieza 03 · dic. 2020 — abr. 2021</p>
+        <p class="panel__label">Pieza 03 · dic. 2020 — abr. 2021</p>
         <h2 class="panel__title">Estrategia de Comunicación y Contenidos</h2>
         <p class="panel__client">Flash Noticias · Ibagué, Colombia</p>
         <ul class="panel__list">
@@ -164,7 +160,7 @@
 
     <section class="stage stage--piece stage--left" id="pieza-4" data-room="5" data-name="05 · Salud Total EPS">
       <article class="panel reveal">
-        <p class="panel__label" data-scramble>Pieza 04 · ene. 2020 — dic. 2022</p>
+        <p class="panel__label">Pieza 04 · ene. 2020 — dic. 2022</p>
         <h2 class="panel__title">Especialista en Soporte de RR. HH. y Operaciones</h2>
         <p class="panel__client">Salud Total EPS · Ibagué, Colombia</p>
         <ul class="panel__list">
@@ -176,7 +172,7 @@
 
     <section class="stage stage--piece stage--left" id="pieza-5" data-room="6" data-name="06 · El Transportador">
       <article class="panel reveal">
-        <p class="panel__label" data-scramble>Pieza 05 · 2018 — 2020</p>
+        <p class="panel__label">Pieza 05 · 2018 — 2020</p>
         <h2 class="panel__title">Asistente de Comunicación y Relaciones Institucionales</h2>
         <p class="panel__client">Grupo Inversionista El Transportador · Bogotá</p>
         <ul class="panel__list">
@@ -191,7 +187,7 @@
 
     <section class="stage stage--piece stage--left" id="pieza-6" data-room="7" data-name="07 · Formación IA">
       <article class="panel reveal">
-        <p class="panel__label" data-scramble>Pieza 06 · dic. 2025 — hoy</p>
+        <p class="panel__label">Pieza 06 · dic. 2025 — hoy</p>
         <h2 class="panel__title">Formación continua en marketing digital e IA</h2>
         <p class="panel__client">Certificados de Google · España</p>
         <ul class="panel__list">
@@ -206,8 +202,8 @@
     <!-- 08 · ATELIER IA -->
     <section class="stage stage--lab" id="atelier" data-room="8" data-name="08 · Atelier IA">
       <div class="lab-wrap">
-        <header class="lab-head reveal">
-          <p class="panel__label" data-scramble>08 / Lo que hago con IA</p>
+        <header class="panel lab-head reveal">
+          <p class="panel__label">08 / Lo que hago con IA</p>
           <h2 class="lab-head__title">La IA acelera. <em>El criterio firma.</em></h2>
           <p class="panel__text">
             Uso la IA generativa como un equipo de apoyo: escucho a la audiencia, abro más caminos creativos y llego antes
@@ -242,8 +238,8 @@
 
     <!-- 09 · CONTACTO -->
     <section class="stage stage--contact" id="contacto" data-room="9" data-name="09 · Contacto">
-      <div class="contact reveal">
-        <p class="panel__label" data-scramble>09 / Hablemos</p>
+      <div class="panel contact reveal">
+        <p class="panel__label">09 / Hablemos</p>
         <h2 class="contact__title">¿Abrimos la próxima <em>campaña</em>?</h2>
         <a class="contact__mail" href="mailto:adriana.bello.guz@gmail.com">adriana.bello.guz@gmail.com</a>
         <div class="contact__actions">

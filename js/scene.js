@@ -2,23 +2,36 @@
    Campaign Studio · escena 3D
    Narrativa: todo nace en la pantalla y vuelve a ella.
    00 El portátil se abre · 01 La pantalla se despliega en capas
-   02–07 Cada campaña se publica y sale proyectada de la pantalla
-   08 Las campañas orbitan el estudio · 09 Vuelven a la pantalla
+   02–07 Cada campaña se publica, se levanta de la pantalla y
+         empuja a las anteriores un paso atrás (pila ordenada)
+   08 La pila espera tras el estudio de IA · 09 Todo vuelve a la pantalla
    Three.js r160 · sin build, servido por import map
    ========================================================== */
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { RectAreaLightUniformsLib } from "three/addons/lights/RectAreaLightUniformsLib.js";
 
 const ready = () => window.dispatchEvent(new Event("scene-ready"));
 const canvas = document.getElementById("scene");
 const mqMobile = window.matchMedia("(max-width: 760px)");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const BG = 0xeceeef;
+const BG = 0xf3f3f1;
+// Paleta clásica: tinta, papel y azul marino
+const INK = "#111317", PAPER = "#f5f5f3", NAVY = "#22385a", NAVY_L = "#a7b8d2", MUTED = "#80848b";
 const FONT_DISPLAY = '"Bodoni Moda", Didot, Georgia, serif';
 const FONT_SANS = '"Inter Tight", system-ui, sans-serif';
 const FONT_MONO = '"JetBrains Mono", Consolas, monospace';
+
+// Estado compartido entre el portátil 3D y lo que dibuja su pantalla
+const FX = {
+  cmd: "",          // texto que el portátil está tecleando (clic del usuario)
+  cmdUntil: 0,      // hasta cuándo se muestra
+  cursor: null,     // { u, v, a }: brillo del ratón sobre la pantalla
+  cam: 0            // piloto verde de la cámara (0..1)
+};
+const cmdActive = (t) => FX.cmd && t < FX.cmdUntil;
 
 /* ==========================================================
    PIEZAS PUBLICITARIAS
@@ -26,22 +39,29 @@ const FONT_MONO = '"JetBrains Mono", Consolas, monospace';
    escribe su ruta en `image`, por ejemplo "assets/ads/jd.jpg".
    ========================================================== */
 const POSTERS = [
-  { client: "JD Sports Fashion", years: "2023 — 2025", headline: "Una marca.\nUn mismo\nrelato.", sub: "Cultura · Imagen corporativa", motif: "arches", bg: "#1e3a32", fg: "#f3ede2", accent: "#cdb07c", image: null },
-  { client: "Senado de Colombia", years: "2022 — 2023", headline: "Cien mil\nvoces, un\nsolo tono.", sub: "Imagen pública · Crisis", motif: "rings", bg: "#4d1519", fg: "#f3ede2", accent: "#d9b98a", image: null },
-  { client: "Flash Noticias", years: "2020 — 2021", headline: "La\ncomunidad\nprimero.", sub: "Contenidos · Alianzas ONG", motif: "circles", bg: "#b4532b", fg: "#fbf3e6", accent: "#2a1810", image: null },
-  { client: "Salud Total EPS", years: "2020 — 2022", headline: "Comunicar\nhacia\ndentro.", sub: "Comunicación interna", motif: "lines", bg: "#1b2740", fg: "#eef1f6", accent: "#9fb4d6", image: null },
-  { client: "El Transportador", years: "2018 — 2020", headline: "Eventos que\nhablan dos\nidiomas.", sub: "Relaciones institucionales", motif: "diagonal", bg: "#121212", fg: "#f1ece3", accent: "#c9ab7c", image: null },
-  { client: "Atelier de IA", years: "2025 — hoy", headline: "Escuchar\nmás rápido.\nDecidir mejor.", sub: "IA generativa · Prompting", motif: "iridescent", bg: "#f6f3ee", fg: "#121318", accent: "#a8885a", image: null }
+  // Serie editorial: misma familia de color (tinta, marino, grafito, piedra, papel)
+  { client: "JD Sports Fashion", years: "2023 — 2025", headline: "Una marca.\nUn mismo\nrelato.", sub: "Cultura · Imagen corporativa", motif: "arches", bg: "#14161a", fg: "#f5f5f3", accent: "#a7b8d2", image: null },
+  { client: "Senado de Colombia", years: "2022 — 2023", headline: "Cien mil\nvoces, un\nsolo tono.", sub: "Imagen pública · Crisis", motif: "rings", bg: "#22385a", fg: "#f5f5f3", accent: "#ffffff", image: null },
+  { client: "Flash Noticias", years: "2020 — 2021", headline: "La\ncomunidad\nprimero.", sub: "Contenidos · Alianzas ONG", motif: "circles", bg: "#e4e4e0", fg: "#14161a", accent: "#22385a", image: null },
+  { client: "Salud Total EPS", years: "2020 — 2022", headline: "Comunicar\nhacia\ndentro.", sub: "Comunicación interna", motif: "lines", bg: "#3a3e45", fg: "#f5f5f3", accent: "#a7b8d2", image: null },
+  { client: "El Transportador", years: "2018 — 2020", headline: "Eventos que\nhablan dos\nidiomas.", sub: "Relaciones institucionales", motif: "diagonal", bg: "#f5f5f3", fg: "#14161a", accent: "#14161a", image: null },
+  { client: "Atelier de IA", years: "2025 — hoy", headline: "Escuchar\nmás rápido.\nDecidir mejor.", sub: "IA generativa · Prompting", motif: "orbit", bg: "#0f1013", fg: "#f5f5f3", accent: "#a7b8d2", image: null }
 ];
+
+// "#rrggbb" + alfa → rgba()
+const rgba = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+};
 const NP = POSTERS.length;
 
 /* ---------- Cámara por sección ---------- */
 const KEYS = [
   { cam: [0, 2.3, 7.4], look: [-1.25, 0.05, 0], fade: 1 },      // 00 inicio
-  { cam: [3.6, 2.5, 6.6], look: [0.15, 1.25, 0.3], fade: 1 },   // 01 perfil (capas)
+  { cam: [3.2, 2.7, 5.9], look: [-1.0, 1.0, 0.1], fade: 1 },    // 01 perfil (capas, en diagonal)
 ];
 for (let k = 0; k < NP; k++) {
-  KEYS.push({ cam: [-0.9 + k * 0.12, 2.1, 8.0 - k * 0.05], look: [0.35, 1.05, 0.5], fade: 1 }); // 02–07 campañas
+  KEYS.push({ cam: [-1.0 + k * 0.1, 2.1, 8.2 - k * 0.05], look: [0.0, 1.05, 0.5], fade: 1 }); // 02–07 campañas
 }
 KEYS.push({ cam: [0, 3.6, 10.4], look: [0, 1.7, -1.0], fade: 0.6 });   // 08 IA
 KEYS.push({ cam: [0, 2.0, 7.4], look: [1.45, 0.55, 0], fade: 1 });     // 09 contacto
@@ -56,8 +76,8 @@ const SCR_W = W - 0.08, SCR_H = LH - 0.1;
 
 /* ---------- Carrusel ---------- */
 const CAR_R = 3.3, CAR_Y = 1.35, CAR_Z = -0.4, THETA0 = 0.95;
-// Muro curvo de campañas publicadas, detrás del portátil
-const WALL_R = 5.4, WALL_CZ = 0.9, WALL_Y = 2.55, WALL_STEP = 0.255, WALL_SCALE = 0.82;
+// Pila de campañas publicadas: cada nivel, un paso atrás y arriba
+const STACK_STEP = new THREE.Vector3(0.1, 0.16, -0.62);
 
 /* ==========================================================
    Utilidades de dibujo
@@ -96,6 +116,16 @@ function wrapText(g, text, x, y, maxW, lh) {
    ========================================================== */
 const SW = 1024, SH = Math.round(1024 * (SCR_H / SCR_W));
 const PAD = 8;
+
+// Miniatura de la campaña en la pantalla "publicando" (de aquí se levanta la pieza 3D)
+const THUMB = (() => {
+  const th = SH - PAD * 2 - 80, tw = th * 0.75;
+  const cx = PAD + 42 + tw / 2, cy = PAD + 42 + th / 2;
+  return {
+    pos: new THREE.Vector3((cx / SW - 0.5) * SCR_W, (0.5 - cy / SH) * SCR_H, 0.02),
+    scale: ((th / SH) * SCR_H) / 2.0
+  };
+})();
 
 // Rectángulos de cada capa del panel (en píxeles de la pantalla)
 function dashRects() {
@@ -136,21 +166,21 @@ function drawLayer(name, g, w, h, t) {
   g.clearRect(0, 0, w, h);
   if (name === "sidebar") {
     g.fillStyle = "#121419"; g.fillRect(0, 0, w, h);
-    g.fillStyle = "#c9ab7c"; g.fillRect(20, 20, 34, 34);
+    g.fillStyle = PAPER; g.fillRect(20, 20, 34, 34);
     g.fillStyle = "#121419"; g.font = `500 16px ${FONT_DISPLAY}`; g.fillText("AB", 25, 43);
     ["Campañas", "Audiencias", "IA Studio", "KPIs", "Marca", "Prensa"].forEach((it, i) => {
       const yy = 92 + i * 34;
-      if (i === 0) { g.fillStyle = "rgba(201,171,124,0.16)"; g.fillRect(10, yy - 20, w - 20, 30); }
+      if (i === 0) { g.fillStyle = "rgba(167,184,210,0.14)"; g.fillRect(10, yy - 20, w - 20, 30); }
       g.fillStyle = i === 0 ? "#f3ede2" : "#8d929b";
       g.font = `400 13px ${FONT_SANS}`;
       g.fillText(it, 22, yy);
     });
   } else if (name === "header") {
-    g.fillStyle = "#f3f2ef"; g.fillRect(0, 0, w, h);
+    g.fillStyle = PAPER; g.fillRect(0, 0, w, h);
     g.fillStyle = "#101216"; g.font = `italic 400 30px ${FONT_DISPLAY}`; g.fillText("Campaign Studio", 0, 32);
     g.fillStyle = "#737983"; g.font = `400 12px ${FONT_MONO}`; g.fillText("ADRIANA BELLO · MARKETING & COMUNICACIÓN", 0, 54);
     const live = 0.5 + 0.5 * Math.sin(t * 4);
-    g.fillStyle = `rgba(168,136,90,${0.4 + live * 0.6})`; g.fillRect(w - 92, 20, 8, 8);
+    g.fillStyle = `rgba(34,56,90,${0.45 + live * 0.55})`; g.fillRect(w - 92, 20, 8, 8);
     g.fillStyle = "#101216"; g.fillText("EN VIVO", w - 76, 28);
   } else if (name.startsWith("kpi")) {
     const i = +name[3];
@@ -159,7 +189,7 @@ function drawLayer(name, g, w, h, t) {
     g.strokeStyle = "rgba(16,18,22,0.12)"; g.strokeRect(0.5, 0.5, w - 1, h - 1);
     g.fillStyle = "#737983"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText(label, 14, 24);
     g.fillStyle = "#101216"; g.font = `400 34px ${FONT_DISPLAY}`; g.fillText(val, 14, 66);
-    g.fillStyle = "#a8885a"; g.fillRect(0, h - 3, w * (0.35 + 0.15 * i), 3);
+    g.fillStyle = NAVY; g.fillRect(0, h - 3, w * (0.35 + 0.15 * i), 3);
   } else if (name === "chart") {
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
     g.fillStyle = "#737983"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("ENGAGEMENT · ALCANCE", 14, 24);
@@ -175,14 +205,14 @@ function drawLayer(name, g, w, h, t) {
       }
       g.stroke();
     };
-    plot(10, 0, "#101216", 2);
-    plot(8, 2, "#a8885a", 2.5);
+    plot(10, 0, "rgba(16,18,22,0.35)", 1.5);
+    plot(8, 2, NAVY, 2.5);
   } else if (name === "ai") {
     g.fillStyle = "#121419"; g.fillRect(0, 0, w, h);
-    g.fillStyle = "#c9ab7c"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("IA · PROMPT", 14, 24);
+    g.fillStyle = NAVY_L; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("IA · PROMPT", 14, 24);
     g.fillStyle = "#d8dbe0"; g.font = `400 13px ${FONT_MONO}`;
-    const end = wrapText(g, typed(t, 5), 14, 54, w - 28, 20);
-    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = "#c9ab7c"; g.fillRect(end.x + 2, end.y - 12, 7, 15); }
+    const end = wrapText(g, cmdActive(t) ? FX.cmd : typed(t, 5), 14, 54, w - 28, 20);
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = NAVY_L; g.fillRect(end.x + 2, end.y - 12, 7, 15); }
   }
 }
 
@@ -194,13 +224,13 @@ function drawScreenBase(g, mode, t, info) {
   g.save();
   roundRect(g, x0, y0, w, h, 16);
   g.clip();
-  g.fillStyle = "#f3f2ef";
+  g.fillStyle = PAPER;
   g.fillRect(x0, y0, w, h);
 
   if (mode === "dash") {
     // huecos de las capas (visibles cuando se despliegan)
     const R = dashRects();
-    g.strokeStyle = "rgba(168,136,90,0.35)";
+    g.strokeStyle = "rgba(16,18,22,0.14)";
     g.setLineDash([5, 5]);
     LAYERS.forEach((n) => { const [x, y, ww, hh] = R[n]; g.strokeRect(x + 0.5, y + 0.5, ww - 1, hh - 1); });
     g.setLineDash([]);
@@ -209,12 +239,12 @@ function drawScreenBase(g, mode, t, info) {
     const p = POSTERS[k];
     // miniatura de la pieza
     const th = h - 80, tw = th * 0.75;
-    g.fillStyle = "#d9cdb8";
+    g.fillStyle = "#dcdcd8";
     g.fillRect(x0 + 38, y0 + 38, tw + 8, th + 8);
     g.drawImage(posterCanvas, x0 + 42, y0 + 42, tw, th);
     const tx = x0 + 42 + tw + 48;
     const tw2 = x0 + w - 40 - tx;
-    g.fillStyle = "#a8885a";
+    g.fillStyle = NAVY;
     g.font = `500 13px ${FONT_MONO}`;
     g.fillText(`CAMPAÑA ${String(k + 1).padStart(2, "0")} / ${String(NP).padStart(2, "0")}`, tx, y0 + 66);
     g.fillStyle = "#101216";
@@ -240,7 +270,7 @@ function drawScreenBase(g, mode, t, info) {
       g.fillStyle = "#101216";
       g.font = `400 18px ${FONT_SANS}`;
       g.fillText(ch, tx, yy);
-      g.fillStyle = done ? "#a8885a" : "rgba(16,18,22,0.25)";
+      g.fillStyle = done ? NAVY : "rgba(16,18,22,0.25)";
       g.font = `500 13px ${FONT_MONO}`;
       g.textAlign = "right";
       g.fillText(done ? "EN LÍNEA ●" : "EN COLA ○", tx + tw2, yy);
@@ -249,20 +279,20 @@ function drawScreenBase(g, mode, t, info) {
   } else if (mode === "studio") {
     g.fillStyle = "#101216";
     g.fillRect(x0, y0, w, h);
-    g.fillStyle = "#c9ab7c";
+    g.fillStyle = NAVY_L;
     g.font = `500 14px ${FONT_MONO}`;
     g.fillText("IA · PROMPT STUDIO", x0 + 50, y0 + 70);
-    g.fillStyle = "rgba(201,171,124,0.3)";
+    g.fillStyle = "rgba(167,184,210,0.3)";
     g.fillRect(x0 + 50, y0 + 88, w - 100, 1);
     g.fillStyle = "#eae6de";
     g.font = `italic 400 44px ${FONT_DISPLAY}`;
-    const end = wrapText(g, typed(t, 6), x0 + 50, y0 + 160, w - 100, 56);
-    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = "#c9ab7c"; g.fillRect(end.x + 6, end.y - 34, 4, 42); }
+    const end = wrapText(g, cmdActive(t) ? FX.cmd : typed(t, 6), x0 + 50, y0 + 160, w - 100, 56);
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = NAVY_L; g.fillRect(end.x + 6, end.y - 34, 4, 42); }
     g.fillStyle = "#737983";
     g.font = `400 13px ${FONT_MONO}`;
     g.fillText("LA IA ACELERA · EL CRITERIO FIRMA", x0 + 50, y0 + h - 50);
   } else if (mode === "contact") {
-    g.fillStyle = "#a8885a";
+    g.fillStyle = NAVY;
     g.font = `500 15px ${FONT_MONO}`;
     g.textAlign = "center";
     g.fillText("09 / HABLEMOS", SW / 2, y0 + h * 0.3);
@@ -276,6 +306,49 @@ function drawScreenBase(g, mode, t, info) {
     g.fillText("INCORPORACIÓN INMEDIATA · PRESENCIAL O HÍBRIDO", SW / 2, y0 + h * 0.76);
     g.textAlign = "left";
   }
+
+  // barra de comando: lo que el portátil teclea al hacer clic
+  if (cmdActive(t) && (mode === "publish" || mode === "contact")) {
+    g.font = `400 17px ${FONT_MONO}`;
+    const label = "› " + FX.cmd;
+    const bw = Math.min(w - 120, g.measureText(label).width + 70);
+    const bx = SW / 2 - bw / 2, by = y0 + h - 78;
+    g.fillStyle = "rgba(17,19,23,0.92)";
+    roundRect(g, bx, by, bw, 46, 23);
+    g.fill();
+    g.fillStyle = "#e9ebef";
+    g.fillText(label, bx + 26, by + 29);
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = NAVY_L; g.fillRect(bx + 30 + g.measureText(label).width, by + 14, 8, 18); }
+  }
+
+  // brillo del ratón sobre la pantalla
+  if (FX.cursor && FX.cursor.a > 0.01) {
+    const cx = FX.cursor.u * SW, cy = (1 - FX.cursor.v) * SH, a = FX.cursor.a;
+    const light = mode === "studio";
+    const glow = g.createRadialGradient(cx, cy, 0, cx, cy, 170);
+    glow.addColorStop(0, light ? `rgba(167,184,210,${0.22 * a})` : `rgba(34,56,90,${0.1 * a})`);
+    glow.addColorStop(1, "rgba(34,56,90,0)");
+    g.fillStyle = glow;
+    g.fillRect(cx - 170, cy - 170, 340, 340);
+    g.strokeStyle = light ? `rgba(234,236,240,${0.8 * a})` : `rgba(17,19,23,${0.7 * a})`;
+    g.lineWidth = 1.5;
+    g.beginPath(); g.arc(cx, cy, 13, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = g.strokeStyle;
+    g.beginPath(); g.arc(cx, cy, 2.5, 0, Math.PI * 2); g.fill();
+  }
+
+  // barrido de refresco al cambiar de evento
+  const wp = (t - info.since) / 0.6;
+  if (wp >= 0 && wp < 1) {
+    const yy = y0 + wp * (h + 120) - 60;
+    const band = g.createLinearGradient(0, yy - 90, 0, yy);
+    band.addColorStop(0, "rgba(34,56,90,0)");
+    band.addColorStop(1, `rgba(34,56,90,${0.16 * (1 - wp)})`);
+    g.fillStyle = band;
+    g.fillRect(x0, yy - 90, w, 90);
+    g.fillStyle = `rgba(34,56,90,${0.5 * (1 - wp)})`;
+    g.fillRect(x0, yy, w, 1.5);
+  }
   g.restore();
   // notch con cámara
   g.fillStyle = "#050506";
@@ -285,6 +358,11 @@ function drawScreenBase(g, mode, t, info) {
   g.beginPath(); g.arc(SW / 2, 10, 4.5, 0, Math.PI * 2); g.fill();
   g.fillStyle = "rgba(120,140,190,0.6)";
   g.beginPath(); g.arc(SW / 2 - 1.2, 8.8, 1.4, 0, Math.PI * 2); g.fill();
+  // piloto de la cámara: se enciende cuando el ratón está sobre el portátil
+  if (FX.cam > 0.02) {
+    g.fillStyle = `rgba(80,220,120,${FX.cam})`;
+    g.beginPath(); g.arc(SW / 2 + 14, 10, 2.2, 0, Math.PI * 2); g.fill();
+  }
 }
 
 /* --- Cubierta: aluminio cepillado, hueco del teclado, altavoces, trackpad --- */
@@ -305,21 +383,21 @@ function makeDeckTexture() {
 
   // aluminio anodizado con cepillado fino
   const grd = g.createLinearGradient(0, 0, KW, KH);
-  grd.addColorStop(0, "#e3d8c6");
-  grd.addColorStop(0.5, "#d8cab4");
-  grd.addColorStop(1, "#cfc0a8");
+  grd.addColorStop(0, "#dadcdf");
+  grd.addColorStop(0.5, "#cfd2d6");
+  grd.addColorStop(1, "#c6c9ce");
   g.fillStyle = grd;
   g.fillRect(0, 0, KW, KH);
   for (let i = 0; i < 1400; i++) {
     const y = Math.random() * KH;
-    g.strokeStyle = Math.random() < 0.5 ? `rgba(255,255,255,${Math.random() * 0.06})` : `rgba(90,70,40,${Math.random() * 0.04})`;
+    g.strokeStyle = Math.random() < 0.5 ? `rgba(255,255,255,${Math.random() * 0.06})` : `rgba(50,56,64,${Math.random() * 0.04})`;
     g.lineWidth = 1;
     g.beginPath(); g.moveTo(0, y); g.lineTo(KW, y + (Math.random() - 0.5) * 2); g.stroke();
   }
 
   // hueco del teclado
   const kx = px(KB.cx - KB.w / 2), ky = py(KB.cy + KB.h / 2), kw = sx(KB.w), kh = sy(KB.h);
-  g.fillStyle = "rgba(40,34,26,0.85)";
+  g.fillStyle = "rgba(26,28,32,0.85)";
   roundRect(g, kx - 10, ky - 10, kw + 20, kh + 20, 18);
   g.fill();
   const inner = g.createLinearGradient(0, ky, 0, ky + kh);
@@ -331,7 +409,7 @@ function makeDeckTexture() {
   // rejillas de altavoz perforadas
   [-1, 1].forEach((side) => {
     const gx = px(side * SPK.x - SPK.w / 2), gy = py(SPK.cy + SPK.h / 2), gw = sx(SPK.w), gh = sy(SPK.h);
-    g.fillStyle = "rgba(50,40,28,0.55)";
+    g.fillStyle = "rgba(34,37,42,0.55)";
     let row = 0;
     for (let yy = gy + 6; yy < gy + gh - 4; yy += 11, row++) {
       for (let xx = gx + 6; xx < gx + gw - 8; xx += 11) {
@@ -346,15 +424,15 @@ function makeDeckTexture() {
   g.lineWidth = 3;
   roundRect(g, tx - 3, ty - 3, tw + 6, th + 6, 26);
   g.stroke();
-  g.strokeStyle = "rgba(90,70,40,0.25)";
+  g.strokeStyle = "rgba(50,56,64,0.22)";
   g.lineWidth = 2;
   roundRect(g, tx - 6, ty - 6, tw + 12, th + 12, 28);
   g.stroke();
 
   // muesca frontal para abrir la tapa
   const notch = g.createRadialGradient(KW / 2, KH, 0, KW / 2, KH, 150);
-  notch.addColorStop(0, "rgba(70,55,35,0.45)");
-  notch.addColorStop(1, "rgba(70,55,35,0)");
+  notch.addColorStop(0, "rgba(50,56,64,0.4)");
+  notch.addColorStop(1, "rgba(50,56,64,0)");
   g.fillStyle = notch;
   g.beginPath(); g.ellipse(KW / 2, KH, 150, 38, 0, Math.PI, 0); g.fill();
 
@@ -414,7 +492,7 @@ function drawPoster(g, PW, PH, p, idx, img) {
       case "arches": {
         for (let i = 0; i < 3; i++) {
           const aw = 420 - i * 110, ax = PW / 2 - aw / 2 + 90, top = 150 + i * 70, bottom = 760;
-          g.fillStyle = i === 2 ? p.accent : `rgba(243,237,226,${0.06 + i * 0.05})`;
+          g.fillStyle = i === 2 ? rgba(p.accent, 0.85) : rgba(p.fg, 0.06 + i * 0.05);
           g.beginPath();
           g.moveTo(ax, bottom);
           g.lineTo(ax, top + aw / 2);
@@ -429,13 +507,13 @@ function drawPoster(g, PW, PH, p, idx, img) {
       }
       case "rings": {
         for (let i = 0; i < 16; i++) {
-          g.strokeStyle = `rgba(243,237,226,${0.5 - i * 0.028})`;
+          g.strokeStyle = rgba(p.fg, 0.5 - i * 0.028);
           g.lineWidth = 1.5;
           g.beginPath(); g.arc(PW * 0.7, PH * 0.3, 30 + i * 26, 0, Math.PI * 2); g.stroke();
         }
         g.fillStyle = p.accent;
         g.beginPath(); g.arc(PW * 0.7, PH * 0.3, 22, 0, Math.PI * 2); g.fill();
-        g.fillStyle = "rgba(243,237,226,0.92)";
+        g.fillStyle = rgba(p.fg, 0.92);
         g.font = `italic 400 190px ${FONT_DISPLAY}`;
         g.fillText("100K+", 40, PH * 0.56);
         break;
@@ -443,24 +521,24 @@ function drawPoster(g, PW, PH, p, idx, img) {
       case "circles": {
         const pts = [[260, 300, 170], [470, 280, 150], [370, 470, 190], [560, 520, 120], [200, 560, 110]];
         pts.forEach(([x, y, r], i) => {
-          g.fillStyle = i % 2 ? "rgba(251,243,230,0.22)" : "rgba(42,24,16,0.18)";
+          g.fillStyle = i % 2 ? rgba(p.accent, 0.12) : rgba(p.fg, 0.05);
           g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-          g.strokeStyle = "rgba(251,243,230,0.7)"; g.lineWidth = 1.5; g.stroke();
+          g.strokeStyle = rgba(p.fg, 0.55); g.lineWidth = 1.5; g.stroke();
         });
         break;
       }
       case "lines": {
-        g.strokeStyle = "rgba(238,241,246,0.12)";
+        g.strokeStyle = rgba(p.fg, 0.1);
         for (let y = 80; y < PH * 0.72; y += 22) { g.beginPath(); g.moveTo(40, y); g.lineTo(PW - 40, y); g.stroke(); }
         for (let r = 0; r < 7; r++) for (let c = 0; c < 9; c++) {
           const on = (r * 9 + c) % 5 === 0;
-          g.fillStyle = on ? p.accent : "rgba(238,241,246,0.55)";
+          g.fillStyle = on ? p.accent : rgba(p.fg, 0.45);
           g.fillRect(110 + c * 64, 150 + r * 64, on ? 26 : 14, on ? 26 : 14);
         }
         break;
       }
       case "diagonal": {
-        g.strokeStyle = p.accent; g.lineWidth = 2;
+        g.strokeStyle = rgba(p.accent, 0.35); g.lineWidth = 1.5;
         for (let i = -PH; i < PW; i += 46) { g.beginPath(); g.moveTo(i, PH * 0.7); g.lineTo(i + PH * 0.7, 0); g.stroke(); }
         g.fillStyle = p.bg; g.fillRect(70, 170, PW - 140, 330);
         g.strokeStyle = p.accent; g.strokeRect(70, 170, PW - 140, 330);
@@ -470,24 +548,23 @@ function drawPoster(g, PW, PH, p, idx, img) {
         g.textAlign = "left";
         break;
       }
-      case "iridescent": {
-        const blobs = [[200, 260, 300, "rgba(240,170,190,0.55)"], [560, 220, 280, "rgba(170,190,240,0.55)"], [420, 520, 320, "rgba(214,188,140,0.6)"], [160, 600, 240, "rgba(170,225,210,0.5)"]];
-        blobs.forEach(([x, y, r, col]) => {
-          const rg = g.createRadialGradient(x, y, 0, x, y, r);
-          rg.addColorStop(0, col); rg.addColorStop(1, "rgba(246,243,238,0)");
-          g.fillStyle = rg; g.fillRect(0, 0, PW, PH);
-        });
-        g.strokeStyle = "rgba(18,19,24,0.8)"; g.lineWidth = 1.5;
-        g.beginPath(); g.arc(PW / 2, 400, 150, 0, Math.PI * 2); g.stroke();
-        g.beginPath(); g.ellipse(PW / 2, 400, 150, 50, -0.4, 0, Math.PI * 2); g.stroke();
-        g.fillStyle = "#121318"; g.beginPath(); g.arc(PW / 2, 400, 8, 0, Math.PI * 2); g.fill();
+      case "orbit": {
+        const glow = g.createRadialGradient(PW / 2, 380, 0, PW / 2, 380, 340);
+        glow.addColorStop(0, rgba(p.accent, 0.22));
+        glow.addColorStop(1, rgba(p.accent, 0));
+        g.fillStyle = glow; g.fillRect(0, 0, PW, PH);
+        g.strokeStyle = rgba(p.fg, 0.7); g.lineWidth = 1.5;
+        g.beginPath(); g.arc(PW / 2, 380, 150, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = rgba(p.fg, 0.35);
+        [-0.4, 0.5, 1.4].forEach((rot) => { g.beginPath(); g.ellipse(PW / 2, 380, 150, 48, rot, 0, Math.PI * 2); g.stroke(); });
+        g.fillStyle = p.accent; g.beginPath(); g.arc(PW / 2, 380, 8, 0, Math.PI * 2); g.fill();
         break;
       }
     }
     g.restore();
   }
 
-  grain(g, PW, PH, 14000, p.fg !== "#121318");
+  grain(g, PW, PH, 9000, p.fg === "#f5f5f3");
 
   // tipografía
   const fg = img ? "#ffffff" : p.fg;
@@ -548,6 +625,7 @@ function init() {
     return;
   }
 
+  RectAreaLightUniformsLib.init();
   const isMobile = () => mqMobile.matches;
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile() ? 1.5 : 2));
@@ -569,7 +647,7 @@ function init() {
 
   /* ---------- Luz de estudio ---------- */
   scene.add(new THREE.HemisphereLight(0xffffff, 0xd8dce1, 1.2));
-  const key = new THREE.DirectionalLight(0xfff5e6, 1.5);
+  const key = new THREE.DirectionalLight(0xffffff, 1.5);
   key.position.set(4, 9, 6);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -608,7 +686,7 @@ function init() {
 
   /* ---------- Portátil (modelo refinado) ---------- */
   const alu = new THREE.MeshPhysicalMaterial({
-    color: 0xd9ccb6, metalness: 0.78, roughness: 0.34, clearcoat: 0.25, clearcoatRoughness: 0.4, envMapIntensity: 1.15
+    color: 0xc9ccd1, metalness: 0.8, roughness: 0.32, clearcoat: 0.25, clearcoatRoughness: 0.4, envMapIntensity: 1.15
   });
   const laptop = new THREE.Group();
   scene.add(laptop);
@@ -637,50 +715,177 @@ function init() {
 
   // filo pulido (diamond-cut) alrededor de la cubierta
   const edgePts = rrShape(W - 0.012, D - 0.012, 0.035).getPoints(24).map((p) => new THREE.Vector3(p.x, T + 0.0008, -p.y));
-  laptop.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(edgePts), new THREE.LineBasicMaterial({ color: 0xfff6e8 })));
+  laptop.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(edgePts), new THREE.LineBasicMaterial({ color: 0xf4f6f8 })));
 
-  // teclas 3D
-  const keyMat = new THREE.MeshStandardMaterial({ color: 0x1b1c20, roughness: 0.55, metalness: 0.15 });
-  const rowsDef = [
-    { units: Array(14).fill(1), h: 0.6 },
-    { units: [...Array(13).fill(1), 1.55], h: 1 },
-    { units: [1.55, ...Array(13).fill(1)], h: 1 },
-    { units: [1.85, ...Array(11).fill(1), 1.85], h: 1 },
-    { units: [2.35, ...Array(10).fill(1), 2.35], h: 1 },
-    { units: [1, 1, 1, 1.3, 5.6, 1.3, 1, 1, 1], h: 1 }
+  /* --- Teclado: distribución española, serigrafía, retroiluminación y pulsación --- */
+  const KEY_ROWS = [
+    { h: 0.62, keys: ["esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", { l: "tid" }] },
+    { h: 1, keys: ["º", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "'", "¡", { l: "⌫", u: 1.55 }] },
+    { h: 1, keys: [{ l: "⇥", u: 1.55 }, "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "`", "+", "Ç"] },
+    { h: 1, keys: [{ l: "⇪", u: 1.85 }, "A", "S", "D", "F", "G", "H", "J", "K", "L", "Ñ", "´", { l: "↵", u: 1.85 }] },
+    { h: 1, keys: [{ l: "⇧", u: 2.35 }, "Z", "X", "C", "V", "B", "N", "M", ",", ".", "-", { l: "⇧", u: 2.35 }] },
+    { h: 1, keys: ["fn", "⌃", "⌥", { l: "⌘", u: 1.3 }, { l: "space", u: 5 }, { l: "⌘", u: 1.3 }, "⌥", { l: "◀", half: true }, { l: "▲▼", split: true }, { l: "▶", half: true }] }
   ];
   const keyGap = 0.012, kbMargin = 0.03;
   const kbW = KB.w - kbMargin * 2, kbH = KB.h - kbMargin * 2;
-  const unitH = (kbH - keyGap * (rowsDef.length - 1)) / rowsDef.reduce((acc, r) => acc + r.h, 0);
-  const keyCount = rowsDef.reduce((acc, r) => acc + r.units.length, 0);
-  const keys = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 2, 0.18), keyMat, keyCount);
-  keys.castShadow = true;
-  const km = new THREE.Matrix4();
-  let ki = 0;
-  let rowTop = KB.cy + KB.h / 2 - kbMargin;
-  rowsDef.forEach((row) => {
-    const rh = unitH * row.h;
-    const totalU = row.units.reduce((acc, u) => acc + u, 0);
-    const unitW = (kbW - keyGap * (row.units.length - 1)) / totalU;
-    let x = KB.cx - kbW / 2;
-    row.units.forEach((u) => {
-      const kw = unitW * u;
-      km.compose(
-        new THREE.Vector3(x + kw / 2, T + 0.0045, -(rowTop - rh / 2)),
-        new THREE.Quaternion(),
-        new THREE.Vector3(kw - 0.004, 0.009, rh - 0.004)
-      );
-      keys.setMatrixAt(ki++, km);
-      x += kw + keyGap;
+  const kbLeft = KB.cx - kbW / 2, kbTop = KB.cy + KB.h / 2 - kbMargin;
+  const unitH = (kbH - keyGap * (KEY_ROWS.length - 1)) / KEY_ROWS.reduce((acc, r) => acc + r.h, 0);
+  const KEY_H = 0.009;
+
+  // lista plana de teclas con su rectángulo (x, y en el plano de la cubierta; +y hacia la bisagra)
+  const keyList = [];
+  {
+    let rowTop = kbTop;
+    KEY_ROWS.forEach((row, ri) => {
+      const rh = unitH * row.h;
+      const specs = row.keys.map((k) => (typeof k === "string" ? { l: k, u: 1 } : { u: 1, ...k }));
+      const totalU = specs.reduce((acc, k) => acc + k.u, 0);
+      const unitW = (kbW - keyGap * (specs.length - 1)) / totalU;
+      let x = kbLeft;
+      specs.forEach((k) => {
+        const kw = unitW * k.u;
+        const halfH = (rh - keyGap * 0.5) / 2;
+        const add = (l, y, h) => keyList.push({ l, row: ri, x: x + kw / 2, y, w: kw, h });
+        if (k.split) {
+          add("▲", rowTop - halfH / 2, halfH);
+          add("▼", rowTop - rh + halfH / 2, halfH);
+        } else if (k.half) {
+          add(k.l, rowTop - rh + halfH / 2, halfH);
+        } else {
+          add(k.l, rowTop - rh / 2, rh);
+        }
+        x += kw + keyGap;
+      });
+      rowTop -= rh + keyGap;
     });
-    rowTop -= rh + keyGap;
+  }
+  const NK = keyList.length;
+
+  // atlas de serigrafía: un lienzo con la misma distribución que el teclado
+  const LCW = 2048, LCH = Math.round(2048 * (kbH / kbW));
+  const legendCanvas = document.createElement("canvas");
+  legendCanvas.width = LCW; legendCanvas.height = LCH;
+  {
+    const g = legendCanvas.getContext("2d");
+    g.fillStyle = "#fff"; g.strokeStyle = "#fff";
+    g.textBaseline = "middle";
+    const MODS = "⌫⇥⇪↵⇧⌘⌥⌃";
+    keyList.forEach((k) => {
+      const px = ((k.x - k.w / 2 - kbLeft) / kbW) * LCW, pw = (k.w / kbW) * LCW;
+      const py = ((kbTop - (k.y + k.h / 2)) / kbH) * LCH, ph = (k.h / kbH) * LCH;
+      k.rect = [px / LCW, 1 - (py + ph) / LCH, pw / LCW, ph / LCH];
+      const cx = px + pw / 2, cy = py + ph / 2;
+      const l = k.l;
+      const fullH = (unitH / kbH) * LCH;
+      if (l === "space") return;
+      if (l === "tid") { g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, ph * 0.28, 0, Math.PI * 2); g.stroke(); return; }
+      if (l === "esc" || /^F\d+$/.test(l)) {
+        g.textAlign = "center";
+        g.font = `500 ${Math.round(ph * 0.4)}px ${FONT_SANS}`;
+        g.fillText(l.toLowerCase(), cx, cy + 1);
+      } else if ("◀▶▲▼".includes(l)) {
+        g.textAlign = "center";
+        g.font = `400 ${Math.round(ph * 0.5)}px ${FONT_SANS}`;
+        g.fillText(l, cx, cy + 1);
+      } else if (l.length === 1 && !MODS.includes(l)) {
+        g.textAlign = "center";
+        g.font = `500 ${Math.round(fullH * 0.42)}px ${FONT_SANS}`;
+        g.fillText(l, cx, cy + 1);
+      } else {
+        // modificadores: símbolo pequeño en la esquina, como en un teclado real
+        const right = k.x > KB.cx + 0.3;
+        g.textAlign = right ? "right" : "left";
+        g.font = `500 ${Math.round(fullH * 0.32)}px ${FONT_SANS}`;
+        g.fillText(l, right ? px + pw - fullH * 0.18 : px + fullH * 0.18, py + ph * 0.7);
+      }
+    });
+  }
+  const legendTex = new THREE.CanvasTexture(legendCanvas);
+  legendTex.anisotropy = maxAniso;
+
+  const keyUniforms = {
+    legendMap: { value: legendTex },
+    backlight: { value: 0 },
+    glowColor: { value: new THREE.Color(0xdfe8ff) }
+  };
+  const keyMat = new THREE.MeshStandardMaterial({ color: 0x0c0d0f, roughness: 0.62, metalness: 0.05, envMapIntensity: 0.45 });
+  keyMat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, keyUniforms);
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", `#include <common>
+        attribute vec4 legendRect;
+        attribute float keyGlow;
+        varying vec2 vLegendUv;
+        varying float vTop;
+        varying float vGlow;`)
+      .replace("#include <uv_vertex>", `#include <uv_vertex>
+        vLegendUv = legendRect.xy + uv * legendRect.zw;
+        vTop = step(0.7, normal.y);
+        vGlow = keyGlow;`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>
+        uniform sampler2D legendMap;
+        uniform float backlight;
+        uniform vec3 glowColor;
+        varying vec2 vLegendUv;
+        varying float vTop;
+        varying float vGlow;`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+        float lg = texture2D(legendMap, vLegendUv).a * vTop;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.82, 0.86), lg * 0.9);
+        totalEmissiveRadiance += glowColor * lg * (backlight * 0.85 + vGlow * 1.4);
+        totalEmissiveRadiance += glowColor * vTop * vGlow * 0.32;`);
+  };
+
+  const keyGeo = new RoundedBoxGeometry(1, 1, 1, 3, 0.2);
+  const legendAttr = new THREE.InstancedBufferAttribute(new Float32Array(NK * 4), 4);
+  const glowAttr = new THREE.InstancedBufferAttribute(new Float32Array(NK), 1);
+  glowAttr.setUsage(THREE.DynamicDrawUsage);
+  keyGeo.setAttribute("legendRect", legendAttr);
+  keyGeo.setAttribute("keyGlow", glowAttr);
+  const keys = new THREE.InstancedMesh(keyGeo, keyMat, NK);
+  keys.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  keys.castShadow = true;
+  keys.frustumCulled = false;
+  const keyPress = new Float32Array(NK);
+  const keyIndex = {};
+  keyList.forEach((k, i) => {
+    legendAttr.setXYZW(i, k.rect[0], k.rect[1], k.rect[2], k.rect[3]);
+    const id = k.l.toLowerCase();
+    if (!(id in keyIndex)) keyIndex[id] = i;
   });
   laptop.add(keys);
+
+  // retroiluminación que se escapa entre las teclas
+  const backGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(KB.w - 0.02, KB.h - 0.02),
+    new THREE.MeshBasicMaterial({ color: 0xc9d8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  backGlow.rotation.x = -Math.PI / 2;
+  backGlow.position.set(KB.cx, T + 0.0011, -KB.cy);
+  laptop.add(backGlow);
+
+  // carácter → tecla (teclado español)
+  const plain = (c) => c.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const PUNCT = { " ": "space", "?": "'", "¿": "¡", "!": "1", ":": ".", ";": ",", "_": "-", "·": "3", "/": "7", "(": "8", ")": "9", "=": "0" };
+  const SHIFTED = "?!:;_()=/·";
+  function keyFor(ch) {
+    if (ch === "ñ" || ch === "Ñ") return keyIndex["ñ"];
+    const c = PUNCT[ch] || plain(ch).toLowerCase();
+    return keyIndex[c];
+  }
+  function pressChar(ch) {
+    const i = keyFor(ch);
+    if (i !== undefined) keyPress[i] = 1;
+    // mayúsculas y signos que en el teclado español van con mayúsculas
+    if (ch !== ch.toLowerCase() || SHIFTED.includes(ch)) keyPress[keyIndex["⇧"]] = 1;
+  }
+  const pressKey = (id) => { if (keyIndex[id] !== undefined) keyPress[keyIndex[id]] = 1; };
 
   // trackpad de cristal
   const trackpad = new THREE.Mesh(
     new THREE.ShapeGeometry(rrShape(TP.w, TP.h, 0.035), 8),
-    new THREE.MeshPhysicalMaterial({ color: 0xcdbfa8, metalness: 0.35, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 0.55 })
+    new THREE.MeshPhysicalMaterial({ color: 0xc2c5ca, metalness: 0.35, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 0.55 })
   );
   trackpad.rotation.x = -Math.PI / 2;
   trackpad.position.set(TP.cx, T + 0.0012, -TP.cy);
@@ -720,12 +925,12 @@ function init() {
   bezel.position.set(0, LH / 2, LT / 2 + 0.0008);
   lidPivot.add(bezel);
   const lidEdgePts = rrShape(W - 0.006, LH - 0.006, 0.02).getPoints(24).map((p) => new THREE.Vector3(p.x, p.y + LH / 2, LT / 2 + 0.0004));
-  lidPivot.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(lidEdgePts), new THREE.LineBasicMaterial({ color: 0xf6ecdc })));
+  lidPivot.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(lidEdgePts), new THREE.LineBasicMaterial({ color: 0xeef0f3 })));
 
   // logo grabado en la parte trasera
   const logo = new THREE.Mesh(
     new THREE.PlaneGeometry(0.34, 0.34),
-    new THREE.MeshStandardMaterial({ color: 0xfff3dd, map: makeLogoTexture(), transparent: true, alphaTest: 0.4, metalness: 1, roughness: 0.12 })
+    new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeLogoTexture(), transparent: true, alphaTest: 0.4, metalness: 1, roughness: 0.12 })
   );
   logo.position.set(0, LH / 2, -LT / 2 - 0.0012);
   logo.rotation.y = Math.PI;
@@ -753,9 +958,47 @@ function init() {
   glass.renderOrder = 2;
   lidPivot.add(glass);
 
+  // la pantalla ilumina el teclado y la cubierta (luz de área, como un panel real)
+  const scrLight = new THREE.RectAreaLight(0xeef2ff, 0, SCR_W, SCR_H);
+  scrLight.position.set(0, LH / 2, LT / 2 + 0.01);
+  scrLight.rotation.y = Math.PI; // las luces emiten hacia -Z local; la pantalla mira a +Z
+  lidPivot.add(scrLight);
+
+  // firma serigrafiada en el marco inferior de la pantalla
+  {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 32;
+    const g = c.getContext("2d");
+    g.fillStyle = "#8d929a";
+    g.font = `500 15px ${FONT_SANS}`;
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText("C A M P A I G N   S T U D I O", 256, 16);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.026), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    label.position.set(0, LH / 2 - SCR_H / 2 - 0.026, LT / 2 + 0.0016);
+    lidPivot.add(label);
+  }
+
+  // luz que sigue al ratón y hace brillar el aluminio
+  const cursorLight = new THREE.PointLight(0xf2f6ff, 0, 0.9, 2);
+  scene.add(cursorLight);
+
+  // volúmenes invisibles para detectar el ratón (más baratos que las mallas reales)
+  const hitMat = new THREE.MeshBasicMaterial();
+  const hitBase = new THREE.Mesh(new THREE.BoxGeometry(W, T + 0.03, D), hitMat);
+  hitBase.position.y = (T + 0.03) / 2;
+  hitBase.visible = false;
+  laptop.add(hitBase);
+  const hitLid = new THREE.Mesh(new THREE.BoxGeometry(W, LH, LT + 0.02), hitMat);
+  hitLid.position.y = LH / 2;
+  hitLid.visible = false;
+  lidPivot.add(hitLid);
+
   /* ---------- Capas del panel (vista desplegada) ---------- */
   const R = dashRects();
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0xa8885a, transparent: true, opacity: 0 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x22385a, transparent: true, opacity: 0 });
   const layers = LAYERS.map((name) => {
     const [x, y, w, h] = R[name];
     const c = document.createElement("canvas");
@@ -777,7 +1020,7 @@ function init() {
 
   /* ---------- Piezas publicitarias ---------- */
   const PW = 768, PH = 1024;
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0xd2bb95, metalness: 0.85, roughness: 0.3 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x16171b, metalness: 0.3, roughness: 0.55 });
   const posters = POSTERS.map((p, k) => {
     const c = document.createElement("canvas");
     c.width = PW; c.height = PH;
@@ -799,53 +1042,8 @@ function init() {
     group.add(frame, plane);
     group.visible = false;
     scene.add(group);
-    return { group, canvas: c };
+    return { group, plane, canvas: c };
   });
-
-  /* ---------- Haz de proyección pantalla → pieza ---------- */
-  const beamGeo = new THREE.BufferGeometry();
-  beamGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(24 * 3), 3));
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0xc9ab7c, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
-  const beam = new THREE.Mesh(beamGeo, beamMat);
-  beam.frustumCulled = false;
-  scene.add(beam);
-  const beamLineGeo = new THREE.BufferGeometry();
-  beamLineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(8 * 3), 3));
-  const beamLineMat = new THREE.LineBasicMaterial({ color: 0xa8885a, transparent: true, opacity: 0 });
-  const beamLines = new THREE.LineSegments(beamLineGeo, beamLineMat);
-  beamLines.frustumCulled = false;
-  scene.add(beamLines);
-
-  const SC = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-  const sCorners = SC.map(() => new THREE.Vector3());
-  const pCorners = SC.map(() => new THREE.Vector3());
-  function updateBeam(poster, w) {
-    beamMat.opacity = 0.07 * w;
-    beamLineMat.opacity = 0.55 * w;
-    beam.visible = beamLines.visible = w > 0.01;
-    if (!beam.visible) return;
-    SC.forEach(([sx, sy], i) => {
-      sCorners[i].set(sx * SCR_W * 0.45, sy * SCR_H * 0.44, 0.01);
-      screenRoot.localToWorld(sCorners[i]);
-      pCorners[i].set(sx * 0.75, sy * 1.0, 0.02);
-      poster.localToWorld(pCorners[i]);
-    });
-    const pos = beamGeo.attributes.position.array;
-    let o = 0;
-    for (let i = 0; i < 4; i++) {
-      const j = (i + 1) % 4;
-      for (const v of [sCorners[i], sCorners[j], pCorners[j], sCorners[i], pCorners[j], pCorners[i]]) {
-        pos[o++] = v.x; pos[o++] = v.y; pos[o++] = v.z;
-      }
-    }
-    beamGeo.attributes.position.needsUpdate = true;
-    const lp = beamLineGeo.attributes.position.array;
-    o = 0;
-    for (let i = 0; i < 4; i++) {
-      for (const v of [sCorners[i], pCorners[i]]) { lp[o++] = v.x; lp[o++] = v.y; lp[o++] = v.z; }
-    }
-    beamLineGeo.attributes.position.needsUpdate = true;
-  }
 
   /* ---------- Scroll → progreso ---------- */
   const rooms = Array.from(document.querySelectorAll("[data-room]"));
@@ -866,12 +1064,82 @@ function init() {
     return n - 1;
   }
 
+  /* ---------- Ratón: hover y clic sobre el portátil ---------- */
   const mouse = new THREE.Vector2();
   const mouseS = new THREE.Vector2();
+  const ndc = new THREE.Vector2();
+  const raycaster = new THREE.Raycaster();
+  let pointerIn = false, overUI = false, isTouch = false;
+  // solo cuenta como "texto encima" lo que de verdad tiene letras (el título es un bloque a todo el ancho)
+  const UI_SEL = ".panel, .lab, a, button, .hero__title .line > span, .hero__role, .hero__lead, .tag, .hud-top, .scroll-hint";
+
+  // cursor propio que aparece sobre el portátil
+  const pcCursor = document.createElement("div");
+  pcCursor.className = "pc-cursor";
+  pcCursor.setAttribute("aria-hidden", "true");
+  pcCursor.innerHTML = "<i></i><span>Haz clic · el portátil escribe</span>";
+  document.body.appendChild(pcCursor);
+
   window.addEventListener("pointermove", (e) => {
     mouse.set((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
+    pointerIn = true;
+    isTouch = e.pointerType === "touch";
+    overUI = !!(e.target.closest && e.target.closest(UI_SEL));
+    pcCursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
   }, { passive: true });
+  document.documentElement.addEventListener("pointerleave", () => { pointerIn = false; });
 
+  // ¿qué parte del portátil hay bajo el ratón?
+  const hitLocal = new THREE.Vector3();
+  function hitTest(nx, ny) {
+    ndc.set(nx, -ny);
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects([hitLid, hitBase], false);
+    if (!hits.length) return null;
+    const h = hits[0];
+    hitLocal.copy(h.point);
+    if (h.object === hitLid) {
+      screenRoot.worldToLocal(hitLocal);
+      if (hitLocal.z < -0.005) return { part: "lid", world: h.point };
+      return { part: "screen", u: hitLocal.x / SCR_W + 0.5, v: hitLocal.y / SCR_H + 0.5, world: h.point };
+    }
+    laptop.worldToLocal(hitLocal);
+    return { part: "deck", x: hitLocal.x, y: -hitLocal.z, world: h.point };
+  }
+
+  // ondas de luz que recorren el teclado
+  const ripples = [];
+  const addRipple = (x, y, t0, s = 1) => { ripples.push({ x, y, t0, s }); if (ripples.length > 6) ripples.shift(); };
+  const kbCenter = () => [KB.cx, KB.cy];
+
+  // clic: el portátil teclea una frase y la pantalla la muestra
+  const PHRASES = ["Hola, soy Adriana.", "¿Abrimos la próxima campaña?", "Marketing con criterio + IA.", "Cuento historias para marcas."];
+  let phraseIdx = 0, typeQueue = [], nextTypeAt = 0, enterAt = -1, trackPulse = 0;
+  function startTyping(t) {
+    FX.cmd = "";
+    FX.cmdUntil = t + 99;
+    typeQueue = PHRASES[phraseIdx++ % PHRASES.length].split("");
+    nextTypeAt = t + 0.12;
+    enterAt = -1;
+  }
+  window.addEventListener("click", (e) => {
+    if (e.target.closest && e.target.closest(UI_SEL)) return;
+    const nx = (e.clientX / window.innerWidth) * 2 - 1, ny = (e.clientY / window.innerHeight) * 2 - 1;
+    const hit = hitTest(nx, ny);
+    if (!hit) return;
+    const t = clock.elapsedTime;
+    trackPulse = 1;
+    const [rx, ry] = hit.part === "deck" ? [hit.x, hit.y] : kbCenter();
+    addRipple(rx, ry, t, 1.5);
+    if (isTouch || e.pointerType === "touch") touchHoverUntil = t + 3.2;
+    startTyping(t);
+  });
+
+  // estado del hover entre fotogramas
+  let hoverS = 0, deckS = 0, screenS = 0, wasHover = false, booted = false, touchHoverUntil = -1;
+  let autoLen = -1;
+  const deckPt = new THREE.Vector2(), lightTarget = new THREE.Vector3(), km2 = new THREE.Matrix4();
+  const uvS = new THREE.Vector2(0.5, 0.5);
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -899,7 +1167,7 @@ function init() {
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), vB = new THREE.Vector3();
   const S = new THREE.Vector3(), qS = new THREE.Quaternion(), nS = new THREE.Vector3();
   const P1 = new THREE.Vector3(), P2 = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
-  const qOut = new THREE.Quaternion(), qRing = new THREE.Quaternion();
+  const qOut = new THREE.Quaternion(), thumbW = new THREE.Vector3();
   const dummy = new THREE.Object3D();
   const slot0 = new THREE.Vector3(CAR_R * Math.sin(THETA0), CAR_Y, CAR_Z + CAR_R * Math.cos(THETA0));
 
@@ -934,9 +1202,14 @@ function init() {
       camPos.x *= 0.8;
       camPos.z = camPos.z * 1.5 + 0.5;
       camLook.y -= 0.35;
+      // un poco más lejos para que el portátil (y su despiece) quepa en vertical
+      tmp.copy(camPos).sub(camLook).multiplyScalar(1.14);
+      camPos.copy(camLook).add(tmp);
+      // en las campañas, la cámara encuadra la pieza publicada con algo de aire
       const wp = clamp01(progress - 1.3) * (1 - clamp01(progress - (ROOM_LAB - 0.6)));
-      camLook.lerp(slot0, wp);
-      camPos.lerp(tmp.set(slot0.x + Math.sin(THETA0) * 5.2, slot0.y + 0.4, slot0.z + Math.cos(THETA0) * 5.2), wp);
+      tmp2.copy(slot0).add(tmp.set(-0.35, 0.15, 0));
+      camLook.lerp(tmp2, wp);
+      camPos.lerp(tmp.set(tmp2.x + Math.sin(THETA0) * 7.2, tmp2.y + 0.5, tmp2.z + Math.cos(THETA0) * 7.2), wp);
     }
     mouseS.lerp(mouse, Math.min(1, dt * 2.5));
     camPos.x += mouseS.x * 0.25;
@@ -944,32 +1217,86 @@ function init() {
     camera.position.copy(camPos);
     camera.lookAt(camLook);
 
-    /* --- 00: el portátil se abre --- */
-    const intro = reduceMotion ? 1 : ease((t - 0.9) / 2.2);
-    lidPivot.rotation.x = THREE.MathUtils.lerp(CLOSED, OPEN, intro);
-    const sway = 1 - 0.75 * clamp01(progress);
-    laptop.rotation.y = ((Math.sin(tm * 0.3) * 0.12 + mouseS.x * 0.15) * sway) - (1 - intro) * 0.5;
+    camera.updateMatrixWorld();
 
-    /* --- 01: la pantalla se despliega en capas --- */
-    const ex = ease(progress) * (1 - ease((progress - 1) / 0.5));
+    /* --- Hover: ¿el ratón está sobre el portátil? --- */
+    const hit = pointerIn && !overUI && !isTouch && fade > 0.8 ? hitTest(mouse.x, mouse.y) : null;
+    // en móvil no hay hover: al tocar el portátil reacciona igual durante unos segundos
+    const hovering = !!hit || t < touchHoverUntil;
+    const k4 = Math.min(1, dt * 4);
+    hoverS += ((hovering ? 1 : 0) - hoverS) * k4;
+    deckS += ((hit && hit.part === "deck" ? 1 : 0) - deckS) * Math.min(1, dt * 6);
+    screenS += ((hit && hit.part === "screen" ? 1 : 0) - screenS) * Math.min(1, dt * 6);
+    if (hit && hit.part === "deck") deckPt.set(hit.x, hit.y);
+    if (hit && hit.part === "screen") uvS.lerp(ndc.set(hit.u, hit.v), Math.min(1, dt * 14));
+    if (hovering !== wasHover) {
+      document.documentElement.classList.toggle("pc-hover", hovering);
+      // al entrar, una onda de luz recorre el teclado desde el punto del ratón
+      if (hovering) {
+        const [rx, ry] = hit && hit.part === "deck" ? [hit.x, hit.y] : kbCenter();
+        addRipple(rx, ry, t, 1);
+      }
+      wasHover = hovering;
+    }
+    FX.cursor = { u: uvS.x, v: uvS.y, a: screenS };
+    FX.cam = hoverS;
+
+    // luz que sigue al ratón por el aluminio
+    if (hit) lightTarget.copy(hit.world).add(tmp.copy(camera.position).sub(hit.world).normalize().multiplyScalar(0.22));
+    cursorLight.position.lerp(lightTarget, Math.min(1, dt * 8));
+    cursorLight.intensity = hoverS * 0.3;
+
+    /* --- 00: el portátil se abre y se enciende --- */
+    const intro = reduceMotion ? 1 : ease((t - 0.9) / 2.2);
+    const power = reduceMotion ? 1 : ease((t - 2.0) / 0.8);
+    if (!booted && power > 0.05) { booted = true; addRipple(...kbCenter(), t, 1.2); }
+    const bootGlow = reduceMotion ? 0 : power * (1 - ease((t - 2.8) / 1.6));
+    lidPivot.rotation.x = THREE.MathUtils.lerp(CLOSED, OPEN - 0.07 * hoverS, intro);
+    const sway = 1 - 0.75 * clamp01(progress);
+    laptop.rotation.y = ((Math.sin(tm * 0.3) * 0.12 + mouseS.x * 0.15) * sway) - (1 - intro) * 0.5 + mouseS.x * 0.1 * hoverS;
+    laptop.rotation.x = mouseS.y * 0.05 * hoverS;
+    // levita un poco mientras el ratón está encima
+    laptop.position.y = hoverS * (0.09 + Math.sin(tm * 1.7) * 0.008);
+    contactShadow.scale.setScalar(1 + 0.2 * hoverS);
+    contactShadow.material.opacity = 1 - 0.4 * hoverS;
+
+    /* --- 01: la pantalla se despliega en capas (y el hover lo insinúa) --- */
+    const exScroll = ease(progress) * (1 - ease((progress - 1) / 0.5));
+    const ex = Math.max(exScroll, hoverS * 0.3 * (1 - clamp01((progress - 1.2) / 0.3)));
     const layerAlpha = 1 - ease((progress - 1.5) / 0.2);
-    edgeMat.opacity = 0.8 * ex;
+    edgeMat.opacity = 0.35 * ex;
     layers.forEach((L) => {
       const d = L.depth;
-      L.mesh.position.set(L.rest.x * (1 + ex * 0.16), L.rest.y * (1 + ex * 0.16), 0.003 + d * 0.0006 + ex * (0.16 + d * 0.17));
+      L.mesh.position.set(
+        L.rest.x * (1 + ex * 0.16) + mouseS.x * d * 0.03 * hoverS,
+        L.rest.y * (1 + ex * 0.16) - mouseS.y * d * 0.02 * hoverS,
+        0.003 + d * 0.0006 + ex * (0.16 + d * 0.17)
+      );
       L.mesh.material.opacity = layerAlpha;
+      L.mesh.material.color.setScalar(power);
       L.mesh.visible = layerAlpha > 0.01;
     });
+    screen.material.color.setScalar(power);
 
-    /* --- Modo de la pantalla --- */
+    /* --- Modo de la pantalla: cada cambio es un evento del portátil --- */
     let mode = "dash";
     let kActive = 0;
     if (progress >= ROOM_LAB + 0.7) mode = "contact";
     else if (progress >= ROOM_LAB - 0.4) mode = "studio";
     else if (progress >= 1.6) { mode = "publish"; kActive = Math.min(NP - 1, Math.max(0, Math.floor(progress - 1.6))); }
     const sKey = mode + kActive;
-    if (sKey !== screenKey) { screenKey = sKey; publishSince = t; lastDraw = -1; }
-    if (t - lastDraw > 1 / 15) {
+    if (sKey !== screenKey) {
+      if (screenKey) {
+        // publicar = pulsar Intro + clic en el trackpad; la onda sale de la tecla
+        const ent = keyList[keyIndex["↵"]];
+        pressKey("↵");
+        if (mode === "publish") trackPulse = 1;
+        addRipple(ent.x, ent.y, t, mode === "contact" ? 1.6 : 1.1);
+      }
+      screenKey = sKey; publishSince = t; lastDraw = -1;
+    }
+    const fps = screenS > 0.01 || typeQueue.length || cmdActive(t) ? 30 : 15;
+    if (t - lastDraw > 1 / fps) {
       drawScreenBase(sg, mode, t, { k: kActive, posterCanvas: posters[kActive].canvas, since: publishSince });
       scrTex.needsUpdate = true;
       if (layerAlpha > 0.01) {
@@ -981,54 +1308,113 @@ function init() {
       }
       lastDraw = t;
     }
+    // la pantalla ilumina el teclado (menos cuando es oscura)
+    scrLight.intensity = power * (mode === "studio" ? 0.25 : 0.7);
 
-    /* --- 02–09: campañas proyectadas, carrusel, anillo y regreso --- */
+    /* --- Teclado sincronizado con lo que se escribe en pantalla --- */
+    if (typeQueue.length && t >= nextTypeAt) {
+      const ch = typeQueue.shift();
+      FX.cmd += ch;
+      pressChar(ch);
+      nextTypeAt = t + 0.05 + Math.random() * 0.07 + (ch === " " ? 0.06 : 0);
+      if (!typeQueue.length) enterAt = t + 0.35;
+    }
+    if (enterAt > 0 && t >= enterAt) { pressKey("↵"); FX.cmdUntil = t + 2.4; enterAt = -1; }
+
+    let autoStr = null;
+    if (!cmdActive(t) && power > 0.9) {
+      if (mode === "dash" && layerAlpha > 0.01) autoStr = typed(t, 5);
+      else if (mode === "studio") autoStr = typed(t, 6);
+    }
+    if (autoStr === null) autoLen = -1;
+    else {
+      if (autoLen < 0 || autoStr.length < autoLen) autoLen = autoStr.length; // sin ráfaga al entrar
+      for (let i = autoLen; i < autoStr.length; i++) pressChar(autoStr[i]);
+      if (autoStr.endsWith("…") && autoLen < autoStr.length) pressKey("↵"); // el prompt se envía
+      autoLen = autoStr.length;
+    }
+
+    const typing = typeQueue.length > 0 || cmdActive(t);
+    const backlight = Math.max(hoverS * 0.9, bootGlow, typing ? 0.6 : 0, exScroll * 0.5);
+    keyUniforms.backlight.value = backlight;
+    backGlow.material.opacity = backlight * 0.32;
+
+    const decay = Math.exp(-dt * 9);
+    for (let i = ripples.length - 1; i >= 0; i--) if (t - ripples[i].t0 > 1.8) ripples.splice(i, 1);
+    for (let i = 0; i < NK; i++) {
+      const k = keyList[i];
+      keyPress[i] *= decay;
+      let glow = keyPress[i] * 0.9, lift = 0;
+      for (const r of ripples) {
+        const age = t - r.t0;
+        const dd = Math.hypot(k.x - r.x, k.y - r.y) - age * 1.6;
+        const band = Math.exp(-(dd * dd) / 0.018) * (1 - age / 1.8) * r.s;
+        glow += band;
+        lift += band * 0.014;
+      }
+      if (deckS > 0.01) {
+        const d2 = (k.x - deckPt.x) ** 2 + (k.y - deckPt.y) ** 2;
+        const p = Math.exp(-d2 / 0.03) * deckS;
+        glow += p * 0.9;
+        lift += p * 0.007;
+      }
+      // vista despiezada: las filas de teclas se elevan en cascada
+      lift += exScroll * 0.07 * (0.35 + 0.65 * (k.row / 5));
+      km2.makeScale(k.w - 0.004, KEY_H, k.h - 0.004).setPosition(k.x, T + KEY_H / 2 + lift - keyPress[i] * 0.0055, -k.y);
+      keys.setMatrixAt(i, km2);
+      glowAttr.setX(i, Math.min(glow, 1.6));
+    }
+    keys.instanceMatrix.needsUpdate = true;
+    glowAttr.needsUpdate = true;
+
+    // trackpad: se hunde con cada clic/publicación
+    trackPulse *= Math.exp(-dt * 7);
+    trackpad.position.y = T + 0.0012 - trackPulse * 0.0018;
+    trackpad.material.emissive.setRGB(0.12 * trackPulse, 0.14 * trackPulse, 0.2 * trackPulse);
+
+    /* --- 02–09: cada campaña se levanta de la pantalla y apila a las anteriores --- */
     laptop.updateMatrixWorld(true);
     screenRoot.getWorldPosition(S);
     screenRoot.getWorldQuaternion(qS);
     nS.set(0, 0, 1).applyQuaternion(qS);
-    const wc = ease((progress - (ROOM_LAB + 0.3)) / 0.5);
+    thumbW.copy(THUMB.pos);
+    screenRoot.localToWorld(thumbW);
+    const wc = ease((progress - (ROOM_LAB + 0.3)) / 0.6);
+    const emerge = (k) => ease((progress - (1.6 + k)) / 0.5);
 
-    let beamPoster = null, beamW = 0;
-    posters.forEach(({ group }, k) => {
-      const s = progress - (1.6 + k);
-      const em = ease(s / 0.4);
-      // se cuelga en el muro cuando sale la siguiente campaña (la última, al entrar en IA)
-      const mv = k < NP - 1 ? ease((s - 1) / 0.4) : ease((progress - (ROOM_LAB - 0.5)) / 0.5);
+    slot(THETA0, P2);
+    faceDir(P2, tmp.set(Math.sin(THETA0), 0, Math.cos(THETA0) + 0.9).normalize(), qOut);
+    P1.copy(S).addScaledVector(nS, 1.2).add(tmp.set(0.4, 0.25, 0));
 
-      // 1) sale de la pantalla hacia el primer plano
-      slot(THETA0, P2);
-      P1.copy(S).addScaledVector(nS, 1.5).add(tmp.set(0.3, 0.3, 0));
+    posters.forEach(({ group, plane }, k) => {
+      const em = emerge(k);
+      // nivel en la pila = campañas publicadas después de esta (continuo)
+      let lvl = 0;
+      for (let j = k + 1; j < NP; j++) lvl += emerge(j);
+
+      // 1) se levanta desde su miniatura en pantalla hasta el primer plano
       const u = em, iu = 1 - u;
       group.position.set(
-        iu * iu * S.x + 2 * iu * u * P1.x + u * u * P2.x,
-        iu * iu * S.y + 2 * iu * u * P1.y + u * u * P2.y,
-        iu * iu * S.z + 2 * iu * u * P1.z + u * u * P2.z
+        iu * iu * thumbW.x + 2 * iu * u * P1.x + u * u * P2.x,
+        iu * iu * thumbW.y + 2 * iu * u * P1.y + u * u * P2.y,
+        iu * iu * thumbW.z + 2 * iu * u * P1.z + u * u * P2.z
       );
-      faceDir(P2, tmp.set(Math.sin(THETA0), 0, Math.cos(THETA0) + 0.9).normalize(), qOut);
       group.quaternion.copy(qS).slerp(qOut, em);
 
-      // 2) pasa al muro de campañas publicadas
-      const tw = (k - (NP - 1) / 2) * WALL_STEP;
-      tmp.set(WALL_R * Math.sin(tw), WALL_Y, WALL_CZ - WALL_R * Math.cos(tw));
-      group.position.lerp(tmp, mv);
-      faceDir(tmp, tmp2.set(-Math.sin(tw), 0, Math.cos(tw)), qRing);
-      group.quaternion.slerp(qRing, mv);
+      // 2) retrocede un paso por cada campaña nueva
+      group.position.add(tmp.copy(STACK_STEP).multiplyScalar(lvl).applyQuaternion(qOut));
+      group.position.y += Math.sin(tm * 0.6 + k) * 0.025 * em * (1 - Math.min(1, lvl));
 
       // 3) contacto: todas vuelven a la pantalla
       group.position.lerp(S, wc);
       group.quaternion.slerp(qS, wc);
-      group.position.y += Math.sin(tm * 0.7 + k) * 0.03 * em * (1 - wc);
 
-      const sc = (0.18 + 0.82 * em) * THREE.MathUtils.lerp(1, WALL_SCALE, mv) * (1 - 0.82 * wc);
+      const gone = ease(lvl - 1.7); // solo se ven 2 niveles detrás
+      const sc = THREE.MathUtils.lerp(THUMB.scale, 1, em) * Math.pow(0.93, lvl) * (1 - gone) * (1 - 0.85 * wc);
       group.scale.setScalar(Math.max(0.001, sc));
-      group.visible = em > 0.002 && wc < 0.995;
-
-      const w = em * (1 - mv) * (1 - wc);
-      if (w > beamW) { beamW = w; beamPoster = group; }
+      plane.material.color.setScalar(1 - 0.2 * Math.min(lvl, 2.5));
+      group.visible = em > 0.002 && wc < 0.995 && gone < 0.995;
     });
-    if (beamPoster) { beamPoster.updateMatrixWorld(true); updateBeam(beamPoster, beamW); }
-    else updateBeam(null, 0);
 
     renderer.render(scene, camera);
   }

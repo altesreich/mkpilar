@@ -5,48 +5,18 @@
   var root = document.documentElement;
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---------- Texto "scramble" ---------- */
-  var GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/·—+#";
-  function scramble(el) {
-    if (el.dataset.scrambled) return;
-    el.dataset.scrambled = "1";
-    var final = el.textContent;
-    if (reduceMotion) return;
-    var frame = 0;
-    var total = Math.min(36, 14 + final.length);
-    (function tick() {
-      var out = "";
-      for (var i = 0; i < final.length; i++) {
-        var settle = (i / final.length) * total * 0.7 + total * 0.3;
-        if (final[i] === " " || frame >= settle) out += final[i];
-        else out += GLYPHS[(Math.random() * GLYPHS.length) | 0];
-      }
-      el.textContent = out;
-      frame++;
-      if (frame <= total) requestAnimationFrame(tick);
-      else el.textContent = final;
-    })();
-  }
-
-  /* ---------- Loader con contador ---------- */
+  /* ---------- Loader: línea de progreso ---------- */
   var loaded = false;
-  var countEl = document.querySelector(".loader__count span");
   var barEl = document.querySelector(".loader__bar i");
   var shown = 0;
-  var target = 0;
   var loaderTimer = setInterval(function () {
-    target = Math.min(loaded ? 100 : 92, target + Math.random() * 9);
-    shown += (target - shown) * 0.35;
-    var v = Math.round(shown);
-    if (countEl) countEl.textContent = v;
-    if (barEl) barEl.style.width = v + "%";
-    if (loaded && v >= 99) {
+    var target = loaded ? 100 : Math.min(90, shown + 6);
+    shown += (target - shown) * 0.25;
+    if (barEl) barEl.style.width = shown.toFixed(1) + "%";
+    if (loaded && shown > 98.5) {
       clearInterval(loaderTimer);
-      if (countEl) countEl.textContent = 100;
-      setTimeout(function () {
-        root.classList.add("is-loaded");
-        document.querySelectorAll(".stage--hero [data-scramble]").forEach(scramble);
-      }, 250);
+      if (barEl) barEl.style.width = "100%";
+      setTimeout(function () { root.classList.add("is-loaded"); }, 300);
     }
   }, 60);
   function finishLoading() { loaded = true; }
@@ -63,6 +33,7 @@
   var bar = document.querySelector(".hud-progress i");
   var pct = document.querySelector(".hud-pct");
   function onScroll() {
+    root.classList.toggle("is-scrolled", window.scrollY > 40);
     var max = document.documentElement.scrollHeight - window.innerHeight;
     var p = max > 0 ? window.scrollY / max : 0;
     if (bar) bar.style.transform = "scaleX(" + p.toFixed(4) + ")";
@@ -77,9 +48,13 @@
     var roomObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
-        sectionEl.textContent = entry.target.getAttribute("data-name");
-        delete sectionEl.dataset.scrambled;
-        scramble(sectionEl);
+        var name = entry.target.getAttribute("data-name");
+        if (sectionEl.textContent === name) return;
+        sectionEl.classList.add("is-changing");
+        setTimeout(function () {
+          sectionEl.textContent = name;
+          sectionEl.classList.remove("is-changing");
+        }, reduceMotion ? 0 : 300);
       });
     }, { rootMargin: "-45% 0px -45% 0px" });
     rooms.forEach(function (r) { roomObserver.observe(r); });
@@ -102,6 +77,10 @@
   }
 
   var reveals = document.querySelectorAll(".reveal");
+  // índice de cada hijo para la entrada en cascada
+  reveals.forEach(function (el) {
+    Array.prototype.forEach.call(el.children, function (child, i) { child.style.setProperty("--i", i); });
+  });
   if ("IntersectionObserver" in window && !reduceMotion) {
     var revealObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
@@ -109,7 +88,6 @@
         var el = entry.target;
         el.classList.add("is-visible");
         el.querySelectorAll("[data-count]").forEach(animateCount);
-        el.querySelectorAll("[data-scramble]").forEach(scramble);
         revealObserver.unobserve(el);
       });
     }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
@@ -249,9 +227,14 @@
         btn.tabIndex = on ? 0 : -1;
         if (on && focus) btn.focus();
       });
-      objEl.textContent = c.objective;
-      delEl.textContent = c.deliverable;
-      humEl.textContent = c.human;
+      var panelEl = objEl.parentNode;
+      panelEl.classList.add("is-switching");
+      setTimeout(function () {
+        objEl.textContent = c.objective;
+        delEl.textContent = c.deliverable;
+        humEl.textContent = c.human;
+        panelEl.classList.remove("is-switching");
+      }, reduceMotion ? 0 : 200);
       typePrompt(c.prompt);
     }
 
