@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adriana Bello — Archivo Orbital</title>
+  <meta name="description" content="Portafolio de Adriana del Pilar Bello Guzmán: marketing, comunicación corporativa y contenido digital potenciados con IA generativa." />
+  <meta name="theme-color" content="#070709" />
+  <meta property="og:title" content="Adriana Bello — Archivo Orbital" />
+  <meta property="og:description" content="Marketing, comunicación y contenido digital. Una colección permanente de historias para marcas e instituciones." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23070709'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23c9a66b' stroke-width='2'/%3E%3Ctext x='32' y='40' font-family='Georgia,serif' font-size='22' fill='%23ece6da' text-anchor='middle'%3EAB%3C/text%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Loader -->
+  <div class="loader" aria-hidden="true">
+    <div class="loader__ring"></div>
+    <p class="loader__text">Abriendo el archivo<span class="loader__dots"></span></p>
+  </div>
+
+  <!-- Escena 3D -->
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- Cabecera -->
+  <header class="topbar">
+    <a href="#sala-1" class="brand" aria-label="Inicio">
+      <span class="brand__mark">AB</span>
+      <span class="brand__name">Adriana Bello<em>Archivo Orbital</em></span>
+    </a>
+    <nav class="topnav" aria-label="Secciones">
+      <a href="#sala-2">Impacto</a>
+      <a href="#sala-3">Colección</a>
+      <a href="#sala-4">Laboratorio IA</a>
+      <a href="#sala-5">Capacidades</a>
+      <a href="#sala-6" class="topnav__cta">Contacto</a>
+    </nav>
+  </header>
+
+  <!-- Índice de salas -->
+  <aside class="rooms-index" aria-label="Índice de salas">
+    <ol>
+      <li><a href="#sala-1" data-index="0"><span>I</span><em>La firma</em></a></li>
+      <li><a href="#sala-2" data-index="1"><span>II</span><em>Impacto</em></a></li>
+      <li><a href="#sala-3" data-index="2"><span>III</span><em>Colección</em></a></li>
+      <li><a href="#sala-4" data-index="3"><span>IV</span><em>Laboratorio IA</em></a></li>
+      <li><a href="#sala-5" data-index="4"><span>V</span><em>Capacidades</em></a></li>
+      <li><a href="#sala-6" data-index="5"><span>VI</span><em>Consulta</em></a></li>
+    </ol>
+    <div class="rooms-index__bar"><i></i></div>
+  </aside>
+
+  <main>
+    <!-- SALA I · LA FIRMA -->
+    <section class="room room--hero" id="sala-1" data-room="0">
+      <div class="room__inner">
+        <p class="eyebrow reveal">Sala I · Colección permanente</p>
+        <h1 class="hero__title reveal">
+          Adriana del Pilar<br /><em>Bello Guzmán</em>
+        </h1>
+        <p class="hero__role reveal">Marketing, comunicación y contenido digital</p>
+        <p class="hero__lead reveal">
+          Cuento historias para marcas e instituciones. He liderado la conversación digital de figuras
+          públicas de primer nivel, he construido cultura de marca para una compañía global y uso la
+          <strong>IA generativa</strong> para escuchar mejor a la audiencia y probar ideas más rápido.
+        </p>
+        <div class="hero__actions reveal">
+          <a class="btn btn--solid" href="#sala-3">Recorrer la colección</a>
+          <a class="btn btn--ghost" href="assets/Adriana_Bello_CV_Marketing.pdf" download>Descargar CV</a>
+        </div>
+        <dl class="hero__facts reveal">
+          <div><dt>Base</dt><dd>Tarancón (Cuenca), España</dd></div>
+          <div><dt>Disponibilidad</dt><dd>Incorporación inmediata</dd></div>
+          <div><dt>Modalidad</dt><dd>Presencial o híbrido</dd></div>
+        </dl>
+      </div>
+      <a class="scroll-cue" href="#sala-2" aria-label="Bajar a la siguiente sala">
+        <span>Desplázate</span><i></i>
+      </a>
+    </section>
+
+    <!-- SALA II · IMPACTO -->
+    <section class="room room--right" id="sala-2" data-room="1">
+      <div class="room__inner">
+        <p class="eyebrow reveal">Sala II · Impacto ejecutivo</p>
+        <h2 class="room__title reveal">Lo que dicen<br /><em>las cifras</em></h2>
+        <p class="room__lead reveal">
+          Comunicación que se mide. Cada plan de contenidos se cerró con un informe de alcance,
+          engagement y crecimiento para decidir qué repetir y qué cambiar.
+        </p>
+        <div class="metrics">
+          <article class="metric placard reveal">
+            <p class="metric__value"><span data-count="100000">0</span><sup>+</sup></p>
+            <p class="metric__label">Seguidores en comunidades gestionadas</p>
+            <p class="metric__note">Instagram · X · Facebook · LinkedIn</p>
+          </article>
+          <article class="metric placard reveal">
+            <p class="metric__value"><span data-count="7">0</span><sup>años</sup></p>
+            <p class="metric__label">De trayectoria en comunicación</p>
+            <p class="metric__note">2018 — 2025</p>
+          </article>
+          <article class="metric placard reveal">
+            <p class="metric__value"><span data-count="5">0</span></p>
+            <p class="metric__label">Organizaciones</p>
+            <p class="metric__note">Retail global · Senado · Salud · Medios · Inversión</p>
+          </article>
+          <article class="metric placard reveal">
+            <p class="metric__value"><span data-count="3">0</span></p>
+            <p class="metric__label">Países de operación</p>
+            <p class="metric__note">Colombia · Reino Unido (remoto) · España</p>
+          </article>
+        </div>
+        <blockquote class="quote reveal">
+          “Crisis que había que resolver en directo, con comunidades de más de cien mil personas mirando.”
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- SALA III · COLECCIÓN -->
+    <section class="room room--right room--long" id="sala-3" data-room="2">
+      <div class="room__inner">
+        <p class="eyebrow reveal">Sala III · La colección</p>
+        <h2 class="room__title reveal">Piezas de una<br /><em>trayectoria</em></h2>
+        <p class="room__lead reveal">
+          Cada etapa, catalogada como una obra: contexto, autoría y lo que dejó en la marca.
+        </p>
+
+        <ol class="collection">
+          <li class="piece placard reveal">
+            <header class="piece__meta">
+              <span>Pieza Nº 06</span><span>dic. 2025 — hoy</span><span>España</span>
+            </header>
+            <h3 class="piece__title">Formación continua en marketing digital e IA</h3>
+            <p class="piece__org">Programas de Google · en paralelo a una pausa por cuidado familiar</p>
+            <ul>
+              <li>Certificados en Marketing Digital, UX/UI y Prompting Essentials.</li>
+              <li>Aplicación práctica de IA generativa a investigación de audiencias y producción de contenidos.</li>
+            </ul>
+          </li>
+
+          <li class="piece placard reveal">
+            <header class="piece__meta">
+              <span>Pieza Nº 05</span><span>ene. 2023 — ago. 2025</span><span>Londres · remoto</span>
+            </header>
+            <h3 class="piece__title">Estratega de Comunicación Corporativa y Cultura</h3>
+            <p class="piece__org">JD Sports Fashion</p>
+            <ul>
+              <li>Diseñé la imagen de los espacios corporativos y campañas internas alineadas con los valores globales de la marca.</li>
+              <li>Trabajé con marketing y e-commerce para que lo visual y lo digital contaran lo mismo.</li>
+              <li>Storyboards, layouts y materiales para lanzamientos; apoyo a campañas con influencers y eventos de marca.</li>
+              <li>Lectura de datos de engagement para decidir qué repetir y qué cambiar.</li>
+            </ul>
+            <p class="piece__tags">Employer branding · Cultura · Campañas internas</p>
+          </li>
+
+          <li class="piece placard reveal">
+            <header class="piece__meta">
+              <span>Pieza Nº 04</span><span>ene. 2022 — dic. 2023</span><span>Colombia</span>
+            </header>
+            <h3 class="piece__title">Community Manager y Estratega de Comunicación Corporativa</h3>
+            <p class="piece__org">Senado de la República de Colombia</p>
+            <ul>
+              <li>Dirección de la comunicación digital e institucional de figuras políticas de relevancia nacional, con más de 100.000 seguidores.</li>
+              <li>Planes de contenido y tono propio para cada perfil; gestión de crisis en tiempo real.</li>
+              <li>Coordinación de fotógrafos, diseñadores, redactores y asesores de prensa.</li>
+              <li>Informes periódicos de alcance, engagement y crecimiento.</li>
+            </ul>
+            <p class="piece__tags">Community management · Crisis · Reputación</p>
+          </li>
+
+          <li class="piece placard reveal">
+            <header class="piece__meta">
+              <span>Pieza Nº 03</span><span>dic. 2020 — abr. 2021</span><span>Ibagué, Colombia</span>
+            </header>
+            <h3 class="piece__title">Estrategia de Comunicación y Contenidos</h3>
+            <p class="piece__org">Flash Noticias</p>
+            <ul>
+              <li>Estrategias de contenido para blogs, plataformas digitales y campañas de concienciación con foco en la comunidad.</li>
+              <li>Diseño de piezas en Canva y alianzas con ONG y organizaciones locales.</li>
+            </ul>
+            <p class="piece__tags">Contenidos · Comunidad · Alianzas</p>
+          </li>
+
+          <li class="piece placard reveal">
+            <header class="piece__meta">
+              <span>Pieza Nº 02</span><span>ene. 2020 — dic. 2022</span><span>Ibagué, Colombia</span>
+            </header>
+            <h3 class="piece__title">Especialista en Soporte de RR. HH. y Operaciones</h3>
+            <p class="piece__org">Salud Total EPS</p>
+            <ul>
+              <li>Redacción de comunicaciones internas y acompañamiento a nuevas incorporaciones.</li>
+            </ul>
+            <p class="piece__tags">Comunicación interna · Onboarding</p>
+          </li>
+
+          <li class="piece placard reveal">
+            <header class="piece__meta">
+              <span>Pieza Nº 01</span><span>2018 — 2020</span><span>Bogotá, Colombia</span>
+            </header>
+            <h3 class="piece__title">Asistente de Comunicación y Relaciones Institucionales</h3>
+            <p class="piece__org">Grupo Inversionista El Transportador</p>
+            <ul>
+              <li>Comunicación corporativa bilingüe y producción de campañas digitales e impresas.</li>
+              <li>Coordinación de diseñadores, fotógrafos y proveedores para eventos de marca.</li>
+            </ul>
+            <p class="piece__tags">Relaciones institucionales · Eventos</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- SALA IV · LABORATORIO IA -->
+    <section class="room room--wide" id="sala-4" data-room="3">
+      <div class="room__inner">
+        <p class="eyebrow reveal">Sala IV · Laboratorio de IA</p>
+        <h2 class="room__title reveal">La IA acelera.<br /><em>El criterio decide.</em></h2>
+        <p class="room__lead reveal">
+          Uso la IA generativa (ChatGPT, Claude) como una extensión del equipo: para escuchar a la audiencia,
+          abrir más caminos creativos y llegar antes a una primera versión. Este es mi método, pieza a pieza.
+        </p>
+
+        <ol class="method reveal">
+          <li><span>01</span><strong>Escuchar</strong><p>Comentarios, menciones y datos se convierten en tensiones y motivaciones.</p></li>
+          <li><span>02</span><strong>Idear</strong><p>Varias rutas creativas en minutos para elegir con criterio, no por cansancio.</p></li>
+          <li><span>03</span><strong>Producir</strong><p>Borradores, storyboards y adaptaciones por canal que luego pulo a mano.</p></li>
+          <li><span>04</span><strong>Medir</strong><p>Informes que traducen KPIs en decisiones claras para dirección.</p></li>
+        </ol>
+
+        <div class="lab reveal" id="lab">
+          <div class="lab__bar">
+            <span class="lab__dots"><i></i><i></i><i></i></span>
+            <span class="lab__title">Consola de prompts · Ejemplos de método</span>
+            <span class="lab__status"><i></i>En vivo</span>
+          </div>
+          <div class="lab__body">
+            <div class="lab__tabs" role="tablist" aria-label="Casos de uso de IA"></div>
+            <div class="lab__panel" role="tabpanel" aria-live="polite">
+              <p class="lab__objective"></p>
+              <div class="lab__prompt">
+                <span class="lab__label">Prompt</span>
+                <pre><code></code></pre>
+              </div>
+              <div class="lab__outcome">
+                <div><span class="lab__label">Entregable</span><p class="lab__deliverable"></p></div>
+                <div><span class="lab__label">Criterio humano</span><p class="lab__human"></p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="lab__footnote reveal">
+          Este sitio también es una pieza del laboratorio: concepto, textos y código desarrollados en colaboración con IA,
+          con dirección y revisión humana.
+        </p>
+      </div>
+    </section>
+
+    <!-- SALA V · CAPACIDADES -->
+    <section class="room room--wide room--center" id="sala-5" data-room="4">
+      <div class="room__inner">
+        <p class="eyebrow reveal">Sala V · Capacidades</p>
+        <h2 class="room__title reveal">El archivo<br /><em>de competencias</em></h2>
+
+        <div class="capabilities">
+          <article class="cap placard reveal">
+            <span class="cap__num">A</span>
+            <h3>Estrategia de contenidos</h3>
+            <p>Planes editoriales, pilares temáticos y tono propio para cada perfil y canal.</p>
+          </article>
+          <article class="cap placard reveal">
+            <span class="cap__num">B</span>
+            <h3>Comunicación corporativa</h3>
+            <p>Mensajes institucionales coherentes entre lo visual, lo digital y lo interno.</p>
+          </article>
+          <article class="cap placard reveal">
+            <span class="cap__num">C</span>
+            <h3>Community &amp; crisis</h3>
+            <p>Gestión de comunidades de +100.000 personas y respuesta a crisis en tiempo real.</p>
+          </article>
+          <article class="cap placard reveal">
+            <span class="cap__num">D</span>
+            <h3>Employer branding</h3>
+            <p>Cultura de marca, campañas internas y espacios corporativos con identidad.</p>
+          </article>
+          <article class="cap placard reveal">
+            <span class="cap__num">E</span>
+            <h3>Analítica &amp; KPIs</h3>
+            <p>Informes de alcance, engagement y crecimiento que se convierten en decisiones.</p>
+          </article>
+          <article class="cap placard reveal">
+            <span class="cap__num">F</span>
+            <h3>IA generativa</h3>
+            <p>Prompting estructurado para investigación, ideación y producción de contenidos.</p>
+          </article>
+        </div>
+
+        <div class="ledger reveal">
+          <div>
+            <h4>Formación</h4>
+            <p><strong>Comunicación Social y Periodismo</strong><br />Corporación Unificada Nacional (CUN) · 2012 — 2017</p>
+            <p><strong>Certificados Google (en curso)</strong><br />Marketing Digital · UX/UI · Prompting Essentials</p>
+          </div>
+          <div>
+            <h4>Idiomas</h4>
+            <p><strong>Español</strong> · nativo<br /><strong>Inglés</strong> · intermedio</p>
+          </div>
+          <div>
+            <h4>Herramientas</h4>
+            <ul class="chips">
+              <li>Canva</li><li>Photoshop</li><li>CapCut</li><li>Google Workspace</li><li>Office</li><li>ChatGPT</li><li>Claude</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SALA VI · CONSULTA -->
+    <section class="room room--center room--contact" id="sala-6" data-room="5">
+      <div class="room__inner">
+        <p class="eyebrow reveal">Sala VI · Consulta estratégica</p>
+        <h2 class="contact__title reveal">¿Cuál es la próxima<br /><em>historia de su marca?</em></h2>
+        <p class="room__lead reveal">
+          Disponible para incorporación inmediata, en modalidad presencial o híbrida.
+          NIE y permiso de trabajo en España.
+        </p>
+        <a class="contact__mail reveal" href="mailto:adriana.bello.guz@gmail.com">adriana.bello.guz@gmail.com</a>
+        <div class="hero__actions hero__actions--center reveal">
+          <a class="btn btn--solid" href="mailto:adriana.bello.guz@gmail.com?subject=Conversaci%C3%B3n%20estrat%C3%A9gica">Escribir un correo</a>
+          <a class="btn btn--ghost" href="assets/Adriana_Bello_CV_Marketing.pdf" download>Descargar CV</a>
+        </div>
+      </div>
+      <footer class="footer">
+        <span>© <span data-year></span> Adriana del Pilar Bello Guzmán</span>
+        <span>Archivo Orbital · Museo oscuro</span>
+      </footer>
+    </section>
+  </main>
+
+  <script src="js/ui.js" defer></script>
+  <script type="module" src="js/scene.js"></script>
+</body>
+</html>
