@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Adriana Bello — Campaign Studio</title>
-  <meta name="description" content="Portafolio de Adriana del Pilar Bello Guzmán: marketing, comunicación corporativa y contenido digital potenciados con IA generativa." />
-  <meta name="theme-color" content="#f3f3f1" />
-  <meta property="og:title" content="Adriana Bello — Campaign Studio" />
-  <meta property="og:description" content="Marketing, comunicación y contenido digital potenciados con IA. Una experiencia 3D interactiva." />
+  <title>Adriana Bello — Comunicación corporativa, interna y marketing</title>
+  <meta name="description" content="Portafolio profesional de Adriana del Pilar Bello Guzmán: comunicación corporativa e interna, redacción y copywriting, campañas políticas, redes sociales y marketing digital." />
+  <meta name="theme-color" content="#f6f5f2" />
+  <meta property="og:title" content="Adriana Bello — Comunicación corporativa, interna y marketing" />
+  <meta property="og:description" content="Experiencia en comunicación interna, campañas políticas, redes sociales y marketing digital. Portafolio profesional." />
   <meta property="og:type" content="website" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f3f3f1'/%3E%3Cpath d='M14 46h36l-4-6H18z' fill='%23c9ccd1'/%3E%3Crect x='19' y='16' width='26' height='22' rx='2' fill='%2322385a'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232b5d57'/%3E%3Ctext x='32' y='41' font-family='Georgia,serif' font-size='26' fill='%23fbfaf8' text-anchor='middle'%3EAB%3C/text%3E%3C/svg%3E" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,26 +30,26 @@
   <div class="loader" aria-hidden="true">
     <p class="loader__name">Adriana <em>Bello</em></p>
     <div class="loader__bar"><i></i></div>
-    <p class="loader__label">Campaign Studio</p>
+    <p class="loader__label">Comunicación &amp; Marketing</p>
   </div>
 
   <canvas id="scene" aria-hidden="true"></canvas>
 
-  <!-- HUD superior -->
+  <!-- Cabecera -->
   <header class="hud-top">
     <a href="#inicio" class="logo" aria-label="Adriana Bello, inicio">
       <span class="logo__mark">AB</span>
-      <span class="logo__text">Adriana Bello<em>Campaign Studio</em></span>
+      <span class="logo__text">Adriana Bello<em>Comunicación &amp; Marketing</em></span>
     </a>
     <nav class="menu" aria-label="Secciones">
-      <a href="#sobre-mi">Perfil</a>
-      <a href="#pieza-1">Campañas</a>
-      <a href="#atelier">IA</a>
+      <a href="#perfil">Perfil</a>
+      <a href="#experiencia-1">Experiencia</a>
+      <a href="#proyectos">Proyectos</a>
       <a href="#contacto" class="menu__cta">Contacto</a>
     </nav>
   </header>
 
-  <!-- HUD inferior -->
+  <!-- Barra inferior -->
   <div class="hud-bottom" aria-hidden="true">
     <span class="hud-section">00 · Inicio</span>
     <div class="hud-bottom__right">
@@ -59,109 +59,97 @@
   </div>
 
   <main>
-    <!-- 00 · HERO -->
+    <!-- 00 · INICIO -->
     <section class="stage stage--hero" id="inicio" data-room="0" data-name="00 · Inicio">
       <div class="hero">
-        <p class="tag">Portafolio · 2026</p>
+        <p class="tag"><span class="status-dot"></span>Disponible · Incorporación inmediata · Presencial o híbrido</p>
         <h1 class="hero__title">
           <span class="line"><span>Adriana</span></span>
           <span class="line"><span><em>Bello Guzmán</em></span></span>
         </h1>
         <div class="hero__foot">
-          <p class="hero__role">Marketing · Comunicación · Contenido digital · IA generativa</p>
-          <p class="hero__lead">Cuento historias para marcas e instituciones. <span class="only-pointer">Pasa el ratón por el portátil y haz clic; después, haz scroll:</span><span class="only-touch">Toca el portátil y desliza hacia abajo:</span> cada campaña sale de su pantalla.</p>
+          <div>
+            <p class="hero__role">Comunicación corporativa · Redacción y copywriting · Marketing digital</p>
+            <div class="hero__actions">
+              <a class="btn btn--dark" href="#experiencia-1">Ver experiencia</a>
+              <a class="btn btn--line" href="assets/Adriana_Bello_CV_Marketing.pdf" download>Descargar CV</a>
+            </div>
+          </div>
+          <p class="hero__lead">
+            Comunicadora social y periodista con 7 años de experiencia en comunicación corporativa e interna, redacción e imagen
+            pública, en Colombia y para el Reino Unido. Busco incorporarme a un equipo de comunicación corporativa o de marketing.
+          </p>
         </div>
       </div>
-      <a class="scroll-hint" href="#sobre-mi"><span>Scroll para abrir</span><i></i></a>
+      <a class="scroll-hint" href="#perfil"><span>Experiencia</span><i></i></a>
     </section>
 
     <!-- 01 · PERFIL -->
-    <section class="stage stage--split" id="sobre-mi" data-room="1" data-name="01 · Perfil">
+    <section class="stage stage--split" id="perfil" data-room="1" data-name="01 · Perfil">
       <article class="panel panel--left reveal">
-        <p class="panel__label">01 / Perfil</p>
-        <h2 class="panel__title">Imagen pública, marca corporativa y <em>criterio</em>.</h2>
-        <!-- REVISAR: texto ampliado, validar y ajustar -->
+        <p class="panel__label">01 / Perfil profesional</p>
+        <h2 class="panel__title">Comunicación corporativa, <em>redacción</em> y marketing.</h2>
         <p class="panel__text">
-          Mi trayectoria se define por la gestión de la imagen de figuras públicas: he dirigido la comunicación de
-          congresistas y líderes políticos latinoamericanos, con comunidades de más de 100.000 seguidores y crisis que había
-          que resolver en directo. En el ámbito corporativo he construido imagen de marca y he definido canales de comunicación
-          interna y externa, más recientemente en remoto para JD Sports Fashion. Combino lo creativo (contenido, imagen,
-          storytelling) con lo analítico (métricas e informes) y uso la IA generativa para escuchar a la audiencia y probar ideas más rápido.
+          He llevado la comunicación digital de figuras políticas de primer nivel en Colombia, con comunidades de más de
+          100.000 seguidores y crisis que había que resolver en directo, y he trabajado en remoto para JD Sports Fashion en
+          cultura y marca interna. Me muevo bien entre la parte creativa (contenido, imagen, storytelling) y la analítica
+          (métricas e informes), y uso la IA generativa como apoyo para conocer a la audiencia y probar ideas más rápido.
         </p>
-        <ul class="chips">
-          <li>Estrategia de contenidos</li><li>Community management</li><li>Comunicación corporativa</li>
-          <li>Employer branding</li><li>Gestión de crisis</li><li>Informes de KPIs</li><li>Storytelling</li>
-          <li>Imagen de figuras públicas</li><li>Canales corporativos</li><li>Relación con medios</li>
+        <ul class="chips" aria-label="Competencias">
+          <li>Comunicación corporativa</li><li>Comunicación interna</li><li>Redacción corporativa</li>
+          <li>Copywriting</li><li>Storytelling</li><li>Employer branding</li>
+          <li>Estrategia de contenidos</li><li>Community management</li><li>Gestión de crisis</li>
+          <li>Relación con medios</li><li>Informes de KPIs</li>
         </ul>
       </article>
-      <article class="panel panel--right panel--data reveal">
-        <p class="panel__label">Datos / Impacto</p>
+      <article class="panel panel--data reveal">
+        <p class="panel__label">Trayectoria en cifras</p>
         <dl class="stats">
-          <div><dt>Comunidad gestionada</dt><dd><span data-count="100000">0</span>+</dd></div>
-          <div><dt>Años de trayectoria</dt><dd><span data-count="7">0</span></dd></div>
+          <div><dt>Seguidores gestionados</dt><dd><span data-count="100000">0</span>+</dd></div>
+          <div><dt>Años de experiencia</dt><dd><span data-count="7">0</span></dd></div>
           <div><dt>Organizaciones</dt><dd><span data-count="5">0</span></dd></div>
-          <div><dt>Países</dt><dd><span data-count="3">0</span></dd></div>
           <div><dt>Redes dirigidas</dt><dd><span data-count="4">0</span></dd></div>
+          <div><dt>Idiomas</dt><dd><span data-count="2">0</span></dd></div>
         </dl>
         <p class="panel__foot">Colombia · Reino Unido (remoto) · España</p>
       </article>
     </section>
 
-    <!-- 02–07 · PIEZAS -->
-    <section class="stage stage--piece stage--left" id="pieza-1" data-room="2" data-name="02 · JD Sports Fashion">
+    <!-- 02–06 · EXPERIENCIA (cada una tiene su ficha 3D) -->
+    <section class="stage stage--piece" id="experiencia-1" data-room="2" data-name="02 · JD Sports Fashion">
       <article class="panel reveal">
-        <p class="panel__label">Pieza 01 · ene. 2023 — ago. 2025</p>
+        <p class="panel__label">Experiencia 01 · ene. 2023 — ago. 2025</p>
         <h2 class="panel__title">Estratega de Comunicación Corporativa y Cultura</h2>
         <p class="panel__client">JD Sports Fashion · Londres, en remoto</p>
         <ul class="panel__list">
           <li>Diseñé la imagen de los espacios corporativos y campañas internas alineadas con los valores globales de la marca.</li>
           <li>Trabajé con marketing y e-commerce para que lo visual y lo digital contaran lo mismo.</li>
-          <li>Storyboards, layouts y materiales para lanzamientos; apoyo a campañas con influencers y eventos de marca.</li>
-          <li>Lectura de datos de engagement para decidir qué repetir y qué cambiar.</li>
-          <!-- REVISAR: texto ampliado, validar y ajustar -->
-          <li>Definición y ordenación de los canales de comunicación interna para que cada mensaje llegue por la vía adecuada a cada equipo.</li>
-          <li>Coherencia de la imagen corporativa entre oficinas, piezas internas y entornos digitales.</li>
+          <li>Preparé storyboards, layouts y materiales para lanzamientos, y apoyé campañas con influencers y eventos de marca.</li>
+          <li>Revisaba los datos de engagement para decidir qué repetir y qué cambiar.</li>
         </ul>
-        <dl class="kv"><div><dt>Área</dt><dd>Imagen corporativa · Employer branding</dd></div><div><dt>Equipos</dt><dd>Marketing · E-commerce</dd></div><div><dt>Formato</dt><dd>Remoto internacional</dd></div></dl>
+        <dl class="kv"><div><dt>Área</dt><dd>Comunicación interna · Cultura</dd></div><div><dt>Con</dt><dd>Marketing · E-commerce</dd></div><div><dt>Formato</dt><dd>Remoto internacional</dd></div></dl>
       </article>
     </section>
 
-    <section class="stage stage--piece stage--left" id="pieza-2" data-room="3" data-name="03 · Senado de Colombia">
+    <section class="stage stage--piece" id="experiencia-2" data-room="3" data-name="03 · Senado de Colombia">
       <article class="panel reveal">
-        <p class="panel__label">Pieza 02 · ene. 2022 — dic. 2023</p>
+        <p class="panel__label">Experiencia 02 · ene. 2022 — dic. 2023</p>
         <h2 class="panel__title">Community Manager y Estratega de Comunicación Corporativa</h2>
         <p class="panel__client">Senado de la República de Colombia</p>
         <ul class="panel__list">
-          <li>Dirigí la comunicación digital e institucional de figuras políticas de relevancia nacional.</li>
+          <li>Dirigí la comunicación digital e institucional de figuras políticas de relevancia nacional, con más de 100.000 seguidores en Instagram, X, Facebook y LinkedIn.</li>
           <li>Diseñé los planes de contenido y el tono de cada perfil, y gestioné crisis en tiempo real.</li>
           <li>Coordiné a fotógrafos, diseñadores, redactores y asesores de prensa.</li>
           <li>Medía alcance, engagement y crecimiento en informes periódicos.</li>
-          <!-- REVISAR: texto ampliado, validar y ajustar -->
-          <li>Construcción y cuidado de la imagen pública de congresistas: posicionamiento, mensajes clave y coherencia entre lo que se dice y lo que se muestra.</li>
-          <li>Definición de los canales de comunicación institucional y de los flujos de aprobación con los equipos de prensa.</li>
-          <li>Cobertura digital de la agenda legislativa, debates y actos públicos.</li>
         </ul>
-        <dl class="kv"><div><dt>Comunidad</dt><dd>+100.000</dd></div><div><dt>Canales</dt><dd>Instagram · X · Facebook · LinkedIn</dd></div><div><dt>Clave</dt><dd>Imagen pública · Crisis en directo</dd></div></dl>
+        <dl class="kv"><div><dt>Comunidad</dt><dd>+100.000 seguidores</dd></div><div><dt>Redes</dt><dd>Instagram · X · Facebook · LinkedIn</dd></div><div><dt>Clave</dt><dd>Campañas políticas · Crisis</dd></div></dl>
       </article>
     </section>
 
-    <section class="stage stage--piece stage--left" id="pieza-3" data-room="4" data-name="04 · Flash Noticias">
+    <section class="stage stage--piece" id="experiencia-3" data-room="4" data-name="04 · Salud Total EPS">
       <article class="panel reveal">
-        <p class="panel__label">Pieza 03 · dic. 2020 — abr. 2021</p>
-        <h2 class="panel__title">Estrategia de Comunicación y Contenidos</h2>
-        <p class="panel__client">Flash Noticias · Ibagué, Colombia</p>
-        <ul class="panel__list">
-          <li>Creé estrategias de contenido para blogs, plataformas digitales y campañas de concienciación, con foco en la comunidad.</li>
-          <li>Diseñé piezas en Canva y construí alianzas con ONG y organizaciones locales.</li>
-        </ul>
-        <dl class="kv"><div><dt>Enfoque</dt><dd>Comunidad</dd></div><div><dt>Alianzas</dt><dd>ONG · Organizaciones locales</dd></div><div><dt>Herramienta</dt><dd>Canva</dd></div></dl>
-      </article>
-    </section>
-
-    <section class="stage stage--piece stage--left" id="pieza-4" data-room="5" data-name="05 · Salud Total EPS">
-      <article class="panel reveal">
-        <p class="panel__label">Pieza 04 · ene. 2020 — dic. 2022</p>
-        <h2 class="panel__title">Especialista en Soporte de RR. HH. y Operaciones</h2>
+        <p class="panel__label">Experiencia 03 · ene. 2020 — dic. 2022</p>
+        <h2 class="panel__title">Especialista en Soporte de RR. HH. y Operaciones Administrativas</h2>
         <p class="panel__client">Salud Total EPS · Ibagué, Colombia</p>
         <ul class="panel__list">
           <li>Redactaba las comunicaciones internas y acompañaba a las nuevas incorporaciones.</li>
@@ -170,87 +158,139 @@
       </article>
     </section>
 
-    <section class="stage stage--piece stage--left" id="pieza-5" data-room="6" data-name="06 · El Transportador">
+    <section class="stage stage--piece" id="experiencia-4" data-room="5" data-name="05 · Flash Noticias">
       <article class="panel reveal">
-        <p class="panel__label">Pieza 05 · 2018 — 2020</p>
+        <p class="panel__label">Experiencia 04 · dic. 2020 — abr. 2021</p>
+        <h2 class="panel__title">Estrategia de Comunicación y Contenidos</h2>
+        <p class="panel__client">Flash Noticias · Ibagué, Colombia</p>
+        <ul class="panel__list">
+          <li>Creé estrategias de contenido para blogs, plataformas digitales y campañas de concienciación, con el foco puesto en la comunidad.</li>
+          <li>Diseñé piezas en Canva y construí alianzas con ONG y organizaciones locales.</li>
+        </ul>
+        <dl class="kv"><div><dt>Enfoque</dt><dd>Redes y comunidad</dd></div><div><dt>Alianzas</dt><dd>ONG · Organizaciones locales</dd></div><div><dt>Herramienta</dt><dd>Canva</dd></div></dl>
+      </article>
+    </section>
+
+    <section class="stage stage--piece" id="experiencia-5" data-room="6" data-name="06 · El Transportador">
+      <article class="panel reveal">
+        <p class="panel__label">Experiencia 05 · 2018 — 2020</p>
         <h2 class="panel__title">Asistente de Comunicación y Relaciones Institucionales</h2>
         <p class="panel__client">Grupo Inversionista El Transportador · Bogotá</p>
         <ul class="panel__list">
           <li>Apoyé la comunicación corporativa bilingüe y la producción de campañas digitales e impresas.</li>
           <li>Coordiné diseñadores, fotógrafos y proveedores para eventos de marca.</li>
-          <!-- REVISAR: texto ampliado, validar y ajustar -->
-          <li>Apoyo en la imagen corporativa del grupo y en la relación con aliados institucionales.</li>
         </ul>
         <dl class="kv"><div><dt>Idiomas</dt><dd>Español · Inglés</dd></div><div><dt>Formatos</dt><dd>Digital · Impreso</dd></div><div><dt>Clave</dt><dd>Eventos de marca</dd></div></dl>
       </article>
     </section>
 
-    <section class="stage stage--piece stage--left" id="pieza-6" data-room="7" data-name="07 · Formación IA">
-      <article class="panel reveal">
-        <p class="panel__label">Pieza 06 · dic. 2025 — hoy</p>
-        <h2 class="panel__title">Formación continua en marketing digital e IA</h2>
-        <p class="panel__client">Certificados de Google · España</p>
-        <ul class="panel__list">
-          <li>Marketing Digital, UX/UI y Prompting Essentials (en curso).</li>
-          <li>Formación compaginada con una pausa por cuidado familiar.</li>
-          <li>IA generativa aplicada a la investigación de audiencias y la producción de contenidos.</li>
-        </ul>
-        <dl class="kv"><div><dt>Base</dt><dd>Comunicación Social y Periodismo · CUN</dd></div><div><dt>IA</dt><dd>ChatGPT · Claude</dd></div><div><dt>Estado</dt><dd>En curso</dd></div></dl>
-      </article>
-    </section>
-
-    <!-- 08 · ATELIER IA -->
-    <section class="stage stage--lab" id="atelier" data-room="8" data-name="08 · Atelier IA">
-      <div class="lab-wrap">
-        <header class="panel lab-head reveal">
-          <p class="panel__label">08 / Lo que hago con IA</p>
-          <h2 class="lab-head__title">La IA acelera. <em>El criterio firma.</em></h2>
-          <p class="panel__text">
-            Uso la IA generativa como un equipo de apoyo: escucho a la audiencia, abro más caminos creativos y llego antes
-            a una primera versión que después pulo a mano. Elige un caso y mira el prompt que escribiría.
-          </p>
+    <!-- 07 · PROYECTOS -->
+    <section class="stage stage--projects" id="proyectos" data-room="7" data-name="07 · Proyectos">
+      <div class="projects">
+        <header class="projects__head reveal">
+          <p class="panel__label">07 / Proyectos destacados</p>
+          <h2 class="projects__title">Lo que he <em>construido</em>.</h2>
+          <p class="panel__text">Cuatro tipos de proyecto que resumen cómo trabajo: estrategia, ejecución y medición.</p>
         </header>
 
-        <div class="lab reveal" id="lab">
-          <div class="lab__bar">
-            <span class="lab__dots"><i></i><i></i><i></i></span>
-            <span class="lab__title">prompt-studio.ab · ejemplos de método</span>
-            <span class="lab__status"><i></i>Interactiva</span>
-          </div>
-          <div class="lab__body">
-            <div class="lab__tabs" role="tablist" aria-label="Casos de uso de IA"></div>
-            <div class="lab__panel" role="tabpanel" aria-live="polite">
-              <p class="lab__objective"></p>
-              <div class="lab__prompt">
-                <span class="lab__label">Prompt</span>
-                <pre><code></code></pre>
-              </div>
-              <div class="lab__outcome">
-                <div><span class="lab__label">Entregable</span><p class="lab__deliverable"></p></div>
-                <div><span class="lab__label">Criterio humano</span><p class="lab__human"></p></div>
-              </div>
+        <div class="projects__grid">
+          <article class="project reveal">
+            <p class="project__num">01</p>
+            <h3 class="project__title">Campañas políticas</h3>
+            <p class="project__where">Senado de la República de Colombia · 2022 — 2023</p>
+            <p class="project__text">Comunicación digital e institucional de congresistas de relevancia nacional: plan de contenidos y tono por perfil, coordinación de fotógrafos, diseñadores, redactores y prensa, y crisis resueltas en directo.</p>
+            <p class="project__result"><strong>+100.000</strong> seguidores en Instagram, X, Facebook y LinkedIn</p>
+          </article>
+
+          <!-- REVISAR: el CV no detalla este proyecto. Completar empresa, año, qué hiciste y algún resultado. -->
+          <article class="project reveal">
+            <p class="project__num">02</p>
+            <h3 class="project__title">Lanzamiento de una empresa</h3>
+            <p class="project__where">Comunicación y redes sociales</p>
+            <p class="project__text">Acompañé el lanzamiento de una empresa desde la comunicación: presentación de la marca, contenidos y apertura de sus redes sociales.</p>
+            <p class="project__result">Más detalles del proyecto, en entrevista</p>
+          </article>
+
+          <article class="project reveal">
+            <p class="project__num">03</p>
+            <h3 class="project__title">Redes sociales y comunidad</h3>
+            <p class="project__where">Senado de Colombia · Flash Noticias</p>
+            <p class="project__text">Estrategias de contenido para redes, blogs y campañas de concienciación con foco en la comunidad; piezas en Canva y alianzas con ONG y organizaciones locales.</p>
+            <p class="project__result"><strong>4 redes</strong> dirigidas con informes periódicos de alcance y engagement</p>
+          </article>
+
+          <article class="project reveal">
+            <p class="project__num">04</p>
+            <h3 class="project__title">Comunicación asertiva e interna</h3>
+            <p class="project__where">JD Sports Fashion · Salud Total EPS</p>
+            <p class="project__text">Campañas internas alineadas con los valores de la marca, comunicaciones internas claras, acompañamiento a nuevas incorporaciones y gestión de crisis en tiempo real con mensajes claros.</p>
+            <p class="project__result"><strong>Cultura y employer branding</strong> para una marca global, en remoto</p>
+          </article>
+        </div>
+
+        <!-- Competencias clave: comunicación corporativa, redacción y marketing -->
+        <div class="skills panel reveal">
+          <p class="panel__label">Competencias clave</p>
+          <div class="skills__grid">
+            <div>
+              <h3 class="skills__title">Comunicación corporativa</h3>
+              <ul>
+                <li>Comunicación interna y externa</li>
+                <li>Comunicados y mensajes clave</li>
+                <li>Imagen y cultura corporativa</li>
+                <li>Relación con medios y prensa</li>
+                <li>Gestión de crisis</li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="skills__title">Redacción y copywriting</h3>
+              <ul>
+                <li>Redacción corporativa e institucional</li>
+                <li>Copywriting para campañas y redes</li>
+                <li>Storytelling y tono de marca</li>
+                <li>Comunicación bilingüe (ES · EN)</li>
+                <li>Guiones y storyboards</li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="skills__title">Marketing digital</h3>
+              <ul>
+                <li>Estrategia y calendario de contenidos</li>
+                <li>Community management</li>
+                <li>Campañas con influencers y eventos</li>
+                <li>Employer branding</li>
+                <li>Informes de KPIs y engagement</li>
+              </ul>
             </div>
           </div>
+          <div class="skills__tools">
+            <p class="skills__tools-label">Herramientas</p>
+            <ul class="chips">
+              <li>Premiere Pro</li><li>After Effects</li><li>Illustrator</li><li>InDesign</li>
+              <li>Canva</li><li>CapCut</li><li>Google Workspace</li><li>Office</li><li>ChatGPT · Claude</li>
+            </ul>
+          </div>
         </div>
-        <p class="lab-note reveal">Este sitio también es una pieza del atelier: concepto, textos y código creados en colaboración con IA, con dirección y revisión humana.</p>
       </div>
     </section>
 
-    <!-- 09 · CONTACTO -->
-    <section class="stage stage--contact" id="contacto" data-room="9" data-name="09 · Contacto">
+    <!-- 08 · CONTACTO -->
+    <section class="stage stage--contact" id="contacto" data-room="8" data-name="08 · Contacto">
       <div class="panel contact reveal">
-        <p class="panel__label">09 / Hablemos</p>
-        <h2 class="contact__title">¿Abrimos la próxima <em>campaña</em>?</h2>
-        <a class="contact__mail" href="mailto:adriana.bello.guz@gmail.com">adriana.bello.guz@gmail.com</a>
+        <p class="panel__label">08 / Contacto</p>
+        <h2 class="contact__title">Hablemos de tu <em>equipo</em>.</h2>
+        <p class="panel__text">Si buscas a alguien para comunicación corporativa, comunicación interna, redacción o marketing, estaré encantada de conversar.</p>
+        <a class="contact__mail" href="mailto:pilarbello1085@gmail.com">pilarbello1085@gmail.com</a>
         <div class="contact__actions">
-          <a class="btn btn--dark" href="mailto:adriana.bello.guz@gmail.com?subject=Conversaci%C3%B3n%20profesional">Escribir un correo</a>
+          <a class="btn btn--dark" href="mailto:pilarbello1085@gmail.com?subject=Oportunidad%20profesional">Escribir un correo</a>
           <a class="btn btn--line" href="assets/Adriana_Bello_CV_Marketing.pdf" download>Descargar CV</a>
         </div>
         <dl class="contact__grid">
           <div><dt>Disponibilidad</dt><dd>Incorporación inmediata · Presencial o híbrido</dd></div>
           <div><dt>Ubicación</dt><dd>Tarancón (Cuenca) · NIE y permiso de trabajo</dd></div>
+          <div><dt>Formación</dt><dd>Comunicación Social y Periodismo (CUN) · Certificados Google: Marketing Digital, UX/UI, Prompting (en curso)</dd></div>
           <div><dt>Idiomas</dt><dd>Español nativo · Inglés intermedio</dd></div>
-          <div><dt>Herramientas</dt><dd>Canva · Photoshop · CapCut · Google Workspace · Office · ChatGPT · Claude</dd></div>
+          <div class="contact__wide"><dt>Herramientas</dt><dd>Suite Adobe (Premiere Pro, After Effects, Illustrator, InDesign) · Canva · CapCut · Google Workspace · Office · ChatGPT · Claude</dd></div>
         </dl>
       </div>
       <footer class="footer">© <span data-year></span> Adriana del Pilar Bello Guzmán</footer>

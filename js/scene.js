@@ -1,10 +1,12 @@
 /* ==========================================================
-   Campaign Studio · escena 3D
-   Narrativa: todo nace en la pantalla y vuelve a ella.
-   00 El portátil se abre · 01 La pantalla se despliega en capas
-   02–07 Cada campaña se publica, se levanta de la pantalla y
-         empuja a las anteriores un paso atrás (pila ordenada)
-   08 La pila espera tras el estudio de IA · 09 Todo vuelve a la pantalla
+   Adriana Bello · portafolio profesional · escena 3D
+   00 El portátil se abre y se enciende
+   01 Perfil: la pantalla se despliega en capas
+   02–06 Experiencia: cada puesto tiene su ficha 3D. Las fichas
+         forman una columna que se desplaza con el scroll (la
+         activa al frente, la siguiente asoma abajo, la anterior
+         sale por arriba): nunca se montan unas sobre otras.
+   07 Proyectos · 08 Contacto
    Three.js r160 · sin build, servido por import map
    ========================================================== */
 import * as THREE from "three";
@@ -17,9 +19,9 @@ const canvas = document.getElementById("scene");
 const mqMobile = window.matchMedia("(max-width: 760px)");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const BG = 0xf3f3f1;
-// Paleta clásica: tinta, papel y azul marino
-const INK = "#111317", PAPER = "#f5f5f3", NAVY = "#22385a", NAVY_L = "#a7b8d2", MUTED = "#80848b";
+const BG = 0xf6f5f2;
+// Paleta de la marca personal (la misma del CV): verde petróleo, terracota, blanco roto
+const INK = "#14201f", PAPER = "#fbfaf8", ACCENT = "#2b5d57", ACCENT_L = "#9cc3bc", TERRA = "#c0654a", MUTED = "#7b8483";
 const FONT_DISPLAY = '"Bodoni Moda", Didot, Georgia, serif';
 const FONT_SANS = '"Inter Tight", system-ui, sans-serif';
 const FONT_MONO = '"JetBrains Mono", Consolas, monospace';
@@ -34,19 +36,59 @@ const FX = {
 const cmdActive = (t) => FX.cmd && t < FX.cmdUntil;
 
 /* ==========================================================
-   PIEZAS PUBLICITARIAS
-   Para usar una imagen real: pon el archivo en assets/ads/ y
+   FICHAS DE EXPERIENCIA (una por puesto, mismo orden que el HTML)
+   El texto sale del CV: si cambias un puesto, cámbialo también aquí.
+   Para usar una imagen real de fondo: ponla en assets/ads/ y
    escribe su ruta en `image`, por ejemplo "assets/ads/jd.jpg".
    ========================================================== */
 const POSTERS = [
-  // Serie editorial: misma familia de color (tinta, marino, grafito, piedra, papel)
-  { client: "JD Sports Fashion", years: "2023 — 2025", headline: "Una marca.\nUn mismo\nrelato.", sub: "Cultura · Imagen corporativa", motif: "arches", bg: "#14161a", fg: "#f5f5f3", accent: "#a7b8d2", image: null },
-  { client: "Senado de Colombia", years: "2022 — 2023", headline: "Cien mil\nvoces, un\nsolo tono.", sub: "Imagen pública · Crisis", motif: "rings", bg: "#22385a", fg: "#f5f5f3", accent: "#ffffff", image: null },
-  { client: "Flash Noticias", years: "2020 — 2021", headline: "La\ncomunidad\nprimero.", sub: "Contenidos · Alianzas ONG", motif: "circles", bg: "#e4e4e0", fg: "#14161a", accent: "#22385a", image: null },
-  { client: "Salud Total EPS", years: "2020 — 2022", headline: "Comunicar\nhacia\ndentro.", sub: "Comunicación interna", motif: "lines", bg: "#3a3e45", fg: "#f5f5f3", accent: "#a7b8d2", image: null },
-  { client: "El Transportador", years: "2018 — 2020", headline: "Eventos que\nhablan dos\nidiomas.", sub: "Relaciones institucionales", motif: "diagonal", bg: "#f5f5f3", fg: "#14161a", accent: "#14161a", image: null },
-  { client: "Atelier de IA", years: "2025 — hoy", headline: "Escuchar\nmás rápido.\nDecidir mejor.", sub: "IA generativa · Prompting", motif: "orbit", bg: "#0f1013", fg: "#f5f5f3", accent: "#a7b8d2", image: null }
+  {
+    company: "JD Sports Fashion", years: "2023 — 2025", place: "Londres · remoto",
+    category: "Comunicación interna · Cultura",
+    headline: "Una marca, el mismo relato dentro y fuera.",
+    role: "Estratega de Comunicación Corporativa y Cultura",
+    tags: ["Campañas internas", "Employer branding", "Imagen corporativa"],
+    motif: "arches", theme: "dark", image: null
+  },
+  {
+    company: "Senado de Colombia", years: "2022 — 2023", place: "Colombia",
+    category: "Campañas políticas · Redes sociales",
+    headline: "Cien mil voces, un solo tono.",
+    metric: { value: "+100.000", label: "seguidores en 4 redes" },
+    role: "Community Manager y Estratega de Comunicación",
+    tags: ["Imagen pública", "Crisis en directo", "Informes de KPIs"],
+    motif: "rings", theme: "light", image: null
+  },
+  {
+    company: "Salud Total EPS", years: "2020 — 2022", place: "Ibagué, Colombia",
+    category: "Comunicación interna",
+    headline: "Comunicar hacia dentro, con claridad.",
+    role: "Soporte de RR. HH. y Operaciones",
+    tags: ["Comunicación interna", "Onboarding", "Salud"],
+    motif: "lines", theme: "dark", image: null
+  },
+  {
+    company: "Flash Noticias", years: "2020 — 2021", place: "Ibagué, Colombia",
+    category: "Redes sociales · Comunidad",
+    headline: "La comunidad, primero.",
+    role: "Estrategia de Comunicación y Contenidos",
+    tags: ["Contenidos", "Concienciación", "Alianzas ONG"],
+    motif: "circles", theme: "light", image: null
+  },
+  {
+    company: "El Transportador", years: "2018 — 2020", place: "Bogotá, Colombia",
+    category: "Relaciones institucionales · Eventos",
+    headline: "Una marca que habla dos idiomas.",
+    role: "Asistente de Comunicación y Relaciones Institucionales",
+    tags: ["Comunicación bilingüe", "Eventos de marca", "Campañas impresas"],
+    motif: "diagonal", theme: "dark", image: null
+  }
 ];
+// dos temas alternos, misma tipografía y retícula: la serie se lee como un conjunto
+const THEMES = {
+  dark: { bg: ACCENT, fg: PAPER, soft: ACCENT_L, accent: "#e7a68f" },
+  light: { bg: PAPER, fg: INK, soft: MUTED, accent: TERRA }
+};
 
 // "#rrggbb" + alfa → rgba()
 const rgba = (hex, a) => {
@@ -57,14 +99,14 @@ const NP = POSTERS.length;
 
 /* ---------- Cámara por sección ---------- */
 const KEYS = [
-  { cam: [0, 2.3, 7.4], look: [-1.25, 0.05, 0], fade: 1 },      // 00 inicio
+  { cam: [0, 2.3, 7.4], look: [-1.45, -0.15, 0], fade: 1 },     // 00 inicio
   { cam: [3.2, 2.7, 5.9], look: [-1.0, 1.0, 0.1], fade: 1 },    // 01 perfil (capas, en diagonal)
 ];
 for (let k = 0; k < NP; k++) {
-  KEYS.push({ cam: [-1.0 + k * 0.1, 2.1, 8.2 - k * 0.05], look: [0.0, 1.05, 0.5], fade: 1 }); // 02–07 campañas
+  KEYS.push({ cam: [-0.9, 2.1, 8.2], look: [0.0, 1.15, 0.5], fade: 1 }); // 02–06 experiencia (cámara fija: se mueven las fichas)
 }
-KEYS.push({ cam: [0, 3.6, 10.4], look: [0, 1.7, -1.0], fade: 0.6 });   // 08 IA
-KEYS.push({ cam: [0, 2.0, 7.4], look: [1.45, 0.55, 0], fade: 1 });     // 09 contacto
+KEYS.push({ cam: [0, 3.6, 10.4], look: [0, 1.7, -1.0], fade: 0.4 });   // 07 proyectos
+KEYS.push({ cam: [0, 2.0, 7.4], look: [1.45, 0.55, 0], fade: 1 });     // 08 contacto
 const ROOM_FIRST_PIECE = 2;
 const ROOM_LAB = 2 + NP;
 const ROOM_CONTACT = ROOM_LAB + 1;
@@ -74,10 +116,13 @@ const W = 3.0, D = 2.05, T = 0.072, LH = 1.95, LT = 0.034;
 const OPEN = -0.3, CLOSED = Math.PI / 2 - 0.02;
 const SCR_W = W - 0.08, SCR_H = LH - 0.1;
 
-/* ---------- Carrusel ---------- */
+/* ---------- Columna de fichas ---------- */
 const CAR_R = 3.3, CAR_Y = 1.35, CAR_Z = -0.4, THETA0 = 0.95;
-// Pila de campañas publicadas: cada nivel, un paso atrás y arriba
-const STACK_STEP = new THREE.Vector3(0.1, 0.16, -0.62);
+// las fichas giran sobre un cilindro horizontal invisible: radio y ángulo entre fichas
+const RAIL_R = 6.2, RAIL_STEP = 0.46;
+// posición y orientación de la ficha activa: casi de frente a la cámara
+const CARD_POS = new THREE.Vector3(2.38, 1.3, 1.7);
+const CARD_DIR = new THREE.Vector3(-0.28, 0.05, 1).normalize();
 
 /* ==========================================================
    Utilidades de dibujo
@@ -117,16 +162,6 @@ function wrapText(g, text, x, y, maxW, lh) {
 const SW = 1024, SH = Math.round(1024 * (SCR_H / SCR_W));
 const PAD = 8;
 
-// Miniatura de la campaña en la pantalla "publicando" (de aquí se levanta la pieza 3D)
-const THUMB = (() => {
-  const th = SH - PAD * 2 - 80, tw = th * 0.75;
-  const cx = PAD + 42 + tw / 2, cy = PAD + 42 + th / 2;
-  return {
-    pos: new THREE.Vector3((cx / SW - 0.5) * SCR_W, (0.5 - cy / SH) * SCR_H, 0.02),
-    scale: ((th / SH) * SCR_H) / 2.0
-  };
-})();
-
 // Rectángulos de cada capa del panel (en píxeles de la pantalla)
 function dashRects() {
   const x0 = PAD, y0 = PAD, w = SW - PAD * 2, h = SH - PAD * 2;
@@ -148,16 +183,24 @@ function dashRects() {
 const LAYERS = ["sidebar", "header", "kpi0", "kpi1", "kpi2", "kpi3", "chart", "ai"];
 const LAYER_DEPTH = { sidebar: 0, header: 1, kpi0: 2, kpi1: 2, kpi2: 2, kpi3: 2, chart: 3, ai: 4 };
 
+// lo que el portátil escribe solo (tareas reales de su día a día)
 const PROMPT_LOOP = [
-  "Analiza 200 comentarios y agrúpalos en 5 tensiones de la audiencia…",
-  "Propón un calendario de 4 semanas con tono propio por red…",
-  "Redacta 3 respuestas de crisis: aclaratoria, empática y de cierre…",
-  "Resume los KPIs del mes en 3 hallazgos y 3 decisiones…"
+  "Plan de contenidos del mes con tono propio por red…",
+  "Comunicado interno para presentar la nueva campaña…",
+  "Respuesta de crisis: clara, empática y con datos…",
+  "Informe de KPIs: alcance, engagement y crecimiento…"
+];
+// lo que escribe en la sección de proyectos
+const PROJECT_LOOP = [
+  "Campañas políticas: +100.000 seguidores en 4 redes…",
+  "Lanzamiento de una empresa: mensajes y primeras piezas…",
+  "Redes sociales con foco en la comunidad…",
+  "Comunicación asertiva e interna para una marca global…"
 ];
 
-function typed(t, period) {
-  const idx = Math.floor(t / period) % PROMPT_LOOP.length;
-  const full = PROMPT_LOOP[idx];
+function typed(t, period, list = PROMPT_LOOP) {
+  const idx = Math.floor(t / period) % list.length;
+  const full = list[idx];
   return full.slice(0, Math.floor(((t % period) / (period * 0.65)) * full.length));
 }
 
@@ -165,31 +208,31 @@ function typed(t, period) {
 function drawLayer(name, g, w, h, t) {
   g.clearRect(0, 0, w, h);
   if (name === "sidebar") {
-    g.fillStyle = "#121419"; g.fillRect(0, 0, w, h);
-    g.fillStyle = PAPER; g.fillRect(20, 20, 34, 34);
-    g.fillStyle = "#121419"; g.font = `500 16px ${FONT_DISPLAY}`; g.fillText("AB", 25, 43);
-    ["Campañas", "Audiencias", "IA Studio", "KPIs", "Marca", "Prensa"].forEach((it, i) => {
+    g.fillStyle = INK; g.fillRect(0, 0, w, h);
+    g.fillStyle = ACCENT; g.fillRect(20, 20, 34, 34);
+    g.fillStyle = PAPER; g.font = `500 16px ${FONT_DISPLAY}`; g.fillText("AB", 25, 43);
+    ["Experiencia", "Proyectos", "Contenidos", "KPIs", "Interna", "Prensa"].forEach((it, i) => {
       const yy = 92 + i * 34;
-      if (i === 0) { g.fillStyle = "rgba(167,184,210,0.14)"; g.fillRect(10, yy - 20, w - 20, 30); }
-      g.fillStyle = i === 0 ? "#f3ede2" : "#8d929b";
+      if (i === 0) { g.fillStyle = "rgba(156,195,188,0.16)"; g.fillRect(10, yy - 20, w - 20, 30); }
+      g.fillStyle = i === 0 ? PAPER : "#8f9a98";
       g.font = `400 13px ${FONT_SANS}`;
       g.fillText(it, 22, yy);
     });
   } else if (name === "header") {
     g.fillStyle = PAPER; g.fillRect(0, 0, w, h);
-    g.fillStyle = "#101216"; g.font = `italic 400 30px ${FONT_DISPLAY}`; g.fillText("Campaign Studio", 0, 32);
-    g.fillStyle = "#737983"; g.font = `400 12px ${FONT_MONO}`; g.fillText("ADRIANA BELLO · MARKETING & COMUNICACIÓN", 0, 54);
-    const live = 0.5 + 0.5 * Math.sin(t * 4);
-    g.fillStyle = `rgba(34,56,90,${0.45 + live * 0.55})`; g.fillRect(w - 92, 20, 8, 8);
-    g.fillStyle = "#101216"; g.fillText("EN VIVO", w - 76, 28);
+    g.fillStyle = "#101216"; g.font = `italic 400 30px ${FONT_DISPLAY}`; g.fillText("Adriana Bello", 0, 32);
+    g.fillStyle = "#737983"; g.font = `400 12px ${FONT_MONO}`; g.fillText("COMUNICACIÓN CORPORATIVA · INTERNA · MARKETING", 0, 54);
+    const live = 0.5 + 0.5 * Math.sin(t * 3);
+    g.fillStyle = `rgba(43,93,87,${0.45 + live * 0.55})`; g.beginPath(); g.arc(w - 112, 24, 4.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#101216"; g.fillText("DISPONIBLE", w - 100, 28);
   } else if (name.startsWith("kpi")) {
     const i = +name[3];
-    const [label, val] = [["COMUNIDAD", "100K+"], ["TRAYECTORIA", "7 años"], ["ORGANIZACIONES", "5"], ["PAÍSES", "3"]][i];
+    const [label, val] = [["SEGUIDORES", "100K+"], ["EXPERIENCIA", "7 años"], ["ORGANIZACIONES", "5"], ["REDES", "4"]][i];
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
     g.strokeStyle = "rgba(16,18,22,0.12)"; g.strokeRect(0.5, 0.5, w - 1, h - 1);
     g.fillStyle = "#737983"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText(label, 14, 24);
     g.fillStyle = "#101216"; g.font = `400 34px ${FONT_DISPLAY}`; g.fillText(val, 14, 66);
-    g.fillStyle = NAVY; g.fillRect(0, h - 3, w * (0.35 + 0.15 * i), 3);
+    g.fillStyle = ACCENT; g.fillRect(0, h - 3, w * (0.35 + 0.15 * i), 3);
   } else if (name === "chart") {
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
     g.fillStyle = "#737983"; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("ENGAGEMENT · ALCANCE", 14, 24);
@@ -206,13 +249,13 @@ function drawLayer(name, g, w, h, t) {
       g.stroke();
     };
     plot(10, 0, "rgba(16,18,22,0.35)", 1.5);
-    plot(8, 2, NAVY, 2.5);
+    plot(8, 2, ACCENT, 2.5);
   } else if (name === "ai") {
-    g.fillStyle = "#121419"; g.fillRect(0, 0, w, h);
-    g.fillStyle = NAVY_L; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("IA · PROMPT", 14, 24);
+    g.fillStyle = INK; g.fillRect(0, 0, w, h);
+    g.fillStyle = ACCENT_L; g.font = `400 10.5px ${FONT_MONO}`; g.fillText("BORRADOR", 14, 24);
     g.fillStyle = "#d8dbe0"; g.font = `400 13px ${FONT_MONO}`;
     const end = wrapText(g, cmdActive(t) ? FX.cmd : typed(t, 5), 14, 54, w - 28, 20);
-    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = NAVY_L; g.fillRect(end.x + 2, end.y - 12, 7, 15); }
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = ACCENT_L; g.fillRect(end.x + 2, end.y - 12, 7, 15); }
   }
 }
 
@@ -234,81 +277,86 @@ function drawScreenBase(g, mode, t, info) {
     g.setLineDash([5, 5]);
     LAYERS.forEach((n) => { const [x, y, ww, hh] = R[n]; g.strokeRect(x + 0.5, y + 0.5, ww - 1, hh - 1); });
     g.setLineDash([]);
-  } else if (mode === "publish") {
-    const { k, posterCanvas, since } = info;
+  } else if (mode === "case") {
+    const { k } = info;
     const p = POSTERS[k];
-    // miniatura de la pieza
-    const th = h - 80, tw = th * 0.75;
-    g.fillStyle = "#dcdcd8";
-    g.fillRect(x0 + 38, y0 + 38, tw + 8, th + 8);
-    g.drawImage(posterCanvas, x0 + 42, y0 + 42, tw, th);
-    const tx = x0 + 42 + tw + 48;
-    const tw2 = x0 + w - 40 - tx;
-    g.fillStyle = NAVY;
-    g.font = `500 13px ${FONT_MONO}`;
-    g.fillText(`CAMPAÑA ${String(k + 1).padStart(2, "0")} / ${String(NP).padStart(2, "0")}`, tx, y0 + 66);
-    g.fillStyle = "#101216";
-    g.font = `400 46px ${FONT_DISPLAY}`;
-    g.fillText(p.client, tx, y0 + 124);
-    g.fillStyle = "#737983";
-    g.font = `400 14px ${FONT_MONO}`;
-    g.fillText(p.sub.toUpperCase() + " · " + p.years, tx, y0 + 156);
-    // progreso de publicación
-    const prog = Math.min(1, Math.max(0, (t - since) / 2.2));
-    g.fillStyle = "rgba(16,18,22,0.1)";
-    g.fillRect(tx, y0 + 200, tw2, 4);
-    g.fillStyle = "#101216";
-    g.fillRect(tx, y0 + 200, tw2 * prog, 4);
-    g.font = `500 13px ${FONT_MONO}`;
-    g.fillText(prog < 1 ? `PUBLICANDO… ${Math.round(prog * 100)}%` : "PUBLICADA ✓", tx, y0 + 232);
-    // canales
-    ["Instagram", "X", "Facebook", "LinkedIn"].forEach((ch, i) => {
-      const done = prog > (i + 1) / 4.4;
-      const yy = y0 + 290 + i * 44;
-      g.strokeStyle = "rgba(16,18,22,0.12)";
-      g.beginPath(); g.moveTo(tx, yy + 14); g.lineTo(tx + tw2, yy + 14); g.stroke();
-      g.fillStyle = "#101216";
-      g.font = `400 18px ${FONT_SANS}`;
-      g.fillText(ch, tx, yy);
-      g.fillStyle = done ? NAVY : "rgba(16,18,22,0.25)";
-      g.font = `500 13px ${FONT_MONO}`;
-      g.textAlign = "right";
-      g.fillText(done ? "EN LÍNEA ●" : "EN COLA ○", tx + tw2, yy);
-      g.textAlign = "left";
+    const th = THEMES.dark; // banda siempre en verde petróleo: todas las pantallas comparten color
+    // banda lateral de color
+    g.fillStyle = th.bg;
+    g.fillRect(x0, y0, 250, h);
+    g.fillStyle = th.fg;
+    g.font = `400 120px ${FONT_DISPLAY}`;
+    g.fillText(String(k + 1).padStart(2, "0"), x0 + 36, y0 + 150);
+    g.font = `500 12px ${FONT_SANS}`;
+    g.fillText("EXPERIENCIA", x0 + 40, y0 + 186);
+    // progreso: en qué experiencia estamos
+    for (let i = 0; i < NP; i++) {
+      g.fillStyle = i === k ? th.fg : rgba(th.fg, 0.3);
+      g.fillRect(x0 + 40 + i * 30, y0 + h - 60, 22, i === k ? 4 : 2);
+    }
+    const tx = x0 + 300, tw2 = x0 + w - 50 - tx;
+    g.fillStyle = TERRA;
+    g.font = `500 14px ${FONT_SANS}`;
+    g.fillText(p.category.toUpperCase(), tx, y0 + 80);
+    g.fillStyle = INK;
+    g.font = `400 52px ${FONT_DISPLAY}`;
+    g.fillText(p.company, tx, y0 + 146);
+    g.fillStyle = "#4a5453";
+    g.font = `400 21px ${FONT_SANS}`;
+    const rl = wrapLines(g, p.role, tw2);
+    rl.forEach((ln, i) => g.fillText(ln, tx, y0 + 190 + i * 30));
+    const yMeta = y0 + 190 + rl.length * 30 + 14;
+    g.fillStyle = MUTED;
+    g.font = `500 14px ${FONT_SANS}`;
+    g.fillText(p.years + "  ·  " + p.place, tx, yMeta);
+    g.fillStyle = "rgba(20,32,31,0.12)";
+    g.fillRect(tx, yMeta + 30, tw2, 1);
+    // áreas, apareciendo una a una tras cada cambio
+    p.tags.forEach((tag, i) => {
+      const a = Math.min(1, Math.max(0, (t - info.since - 0.25 - i * 0.18) / 0.35));
+      const yy = yMeta + 84 + i * 46;
+      g.fillStyle = rgba(ACCENT, a);
+      g.beginPath(); g.arc(tx + 7, yy - 7, 5, 0, Math.PI * 2); g.fill();
+      g.fillStyle = rgba(INK, a);
+      g.font = `400 22px ${FONT_SANS}`;
+      g.fillText(tag, tx + 28 + (1 - a) * 12, yy);
     });
   } else if (mode === "studio") {
-    g.fillStyle = "#101216";
+    g.fillStyle = ACCENT;
     g.fillRect(x0, y0, w, h);
-    g.fillStyle = NAVY_L;
+    g.fillStyle = ACCENT_L;
     g.font = `500 14px ${FONT_MONO}`;
-    g.fillText("IA · PROMPT STUDIO", x0 + 50, y0 + 70);
-    g.fillStyle = "rgba(167,184,210,0.3)";
+    g.fillText("PROYECTOS DESTACADOS", x0 + 50, y0 + 70);
+    g.fillStyle = "rgba(251,250,248,0.3)";
     g.fillRect(x0 + 50, y0 + 88, w - 100, 1);
-    g.fillStyle = "#eae6de";
+    g.fillStyle = PAPER;
     g.font = `italic 400 44px ${FONT_DISPLAY}`;
-    const end = wrapText(g, cmdActive(t) ? FX.cmd : typed(t, 6), x0 + 50, y0 + 160, w - 100, 56);
-    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = NAVY_L; g.fillRect(end.x + 6, end.y - 34, 4, 42); }
-    g.fillStyle = "#737983";
+    const end = wrapText(g, cmdActive(t) ? FX.cmd : typed(t, 6, PROJECT_LOOP), x0 + 50, y0 + 160, w - 100, 56);
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = ACCENT_L; g.fillRect(end.x + 6, end.y - 34, 4, 42); }
+    g.fillStyle = ACCENT_L;
     g.font = `400 13px ${FONT_MONO}`;
-    g.fillText("LA IA ACELERA · EL CRITERIO FIRMA", x0 + 50, y0 + h - 50);
+    g.fillText("ESTRATEGIA · EJECUCIÓN · MEDICIÓN", x0 + 50, y0 + h - 50);
   } else if (mode === "contact") {
-    g.fillStyle = NAVY;
+    // mismo verde que el resto de pantallas
+    g.fillStyle = ACCENT;
+    g.fillRect(x0, y0, w, h);
+    g.fillStyle = ACCENT_L;
     g.font = `500 15px ${FONT_MONO}`;
     g.textAlign = "center";
-    g.fillText("09 / HABLEMOS", SW / 2, y0 + h * 0.3);
-    g.fillStyle = "#101216";
+    g.fillText("08 / CONTACTO", SW / 2, y0 + h * 0.3);
+    g.fillStyle = PAPER;
     g.font = `italic 400 92px ${FONT_DISPLAY}`;
     g.fillText("Hablemos.", SW / 2, y0 + h * 0.52);
     g.font = `400 22px ${FONT_MONO}`;
-    g.fillText("adriana.bello.guz@gmail.com", SW / 2, y0 + h * 0.66);
-    g.fillStyle = "#737983";
+    g.fillText("pilarbello1085@gmail.com", SW / 2, y0 + h * 0.66);
+    g.fillStyle = ACCENT_L;
     g.font = `400 14px ${FONT_MONO}`;
     g.fillText("INCORPORACIÓN INMEDIATA · PRESENCIAL O HÍBRIDO", SW / 2, y0 + h * 0.76);
     g.textAlign = "left";
   }
 
   // barra de comando: lo que el portátil teclea al hacer clic
-  if (cmdActive(t) && (mode === "publish" || mode === "contact")) {
+  if (cmdActive(t) && (mode === "case" || mode === "contact")) {
     g.font = `400 17px ${FONT_MONO}`;
     const label = "› " + FX.cmd;
     const bw = Math.min(w - 120, g.measureText(label).width + 70);
@@ -318,16 +366,16 @@ function drawScreenBase(g, mode, t, info) {
     g.fill();
     g.fillStyle = "#e9ebef";
     g.fillText(label, bx + 26, by + 29);
-    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = NAVY_L; g.fillRect(bx + 30 + g.measureText(label).width, by + 14, 8, 18); }
+    if (Math.floor(t * 2.5) % 2 === 0) { g.fillStyle = ACCENT_L; g.fillRect(bx + 30 + g.measureText(label).width, by + 14, 8, 18); }
   }
 
   // brillo del ratón sobre la pantalla
   if (FX.cursor && FX.cursor.a > 0.01) {
     const cx = FX.cursor.u * SW, cy = (1 - FX.cursor.v) * SH, a = FX.cursor.a;
-    const light = mode === "studio";
+    const light = mode === "studio" || mode === "contact"; // pantallas verdes: cursor claro
     const glow = g.createRadialGradient(cx, cy, 0, cx, cy, 170);
-    glow.addColorStop(0, light ? `rgba(167,184,210,${0.22 * a})` : `rgba(34,56,90,${0.1 * a})`);
-    glow.addColorStop(1, "rgba(34,56,90,0)");
+    glow.addColorStop(0, light ? `rgba(156,195,188,${0.22 * a})` : `rgba(43,93,87,${0.1 * a})`);
+    glow.addColorStop(1, "rgba(43,93,87,0)");
     g.fillStyle = glow;
     g.fillRect(cx - 170, cy - 170, 340, 340);
     g.strokeStyle = light ? `rgba(234,236,240,${0.8 * a})` : `rgba(17,19,23,${0.7 * a})`;
@@ -342,11 +390,11 @@ function drawScreenBase(g, mode, t, info) {
   if (wp >= 0 && wp < 1) {
     const yy = y0 + wp * (h + 120) - 60;
     const band = g.createLinearGradient(0, yy - 90, 0, yy);
-    band.addColorStop(0, "rgba(34,56,90,0)");
-    band.addColorStop(1, `rgba(34,56,90,${0.16 * (1 - wp)})`);
+    band.addColorStop(0, "rgba(43,93,87,0)");
+    band.addColorStop(1, `rgba(43,93,87,${0.16 * (1 - wp)})`);
     g.fillStyle = band;
     g.fillRect(x0, yy - 90, w, 90);
-    g.fillStyle = `rgba(34,56,90,${0.5 * (1 - wp)})`;
+    g.fillStyle = `rgba(43,93,87,${0.5 * (1 - wp)})`;
     g.fillRect(x0, yy, w, 1.5);
   }
   g.restore();
@@ -473,128 +521,150 @@ function makeLogoTexture() {
   return tex;
 }
 
-/* --- Pieza publicitaria --- */
-function drawPoster(g, PW, PH, p, idx, img) {
-  g.fillStyle = p.bg;
-  g.fillRect(0, 0, PW, PH);
+/* --- Ficha de experiencia (plantilla editorial común) --- */
+function wrapLines(g, text, maxW) {
+  const out = [];
+  let line = "";
+  text.split(" ").forEach((wd) => {
+    const test = line ? line + " " + wd : wd;
+    if (g.measureText(test).width > maxW && line) { out.push(line); line = wd; }
+    else line = test;
+  });
+  if (line) out.push(line);
+  return out;
+}
 
+function drawMotif(g, motif, x, y, w, h, col) {
+  g.save();
+  g.strokeStyle = col;
+  g.fillStyle = col;
+  g.lineWidth = 1.5;
+  const cx = x + w / 2, cy = y + h / 2;
+  switch (motif) {
+    case "arches":
+      for (let i = 0; i < 4; i++) {
+        const aw = w * (0.9 - i * 0.2), ax = cx - aw / 2, top = y + i * 22;
+        g.beginPath();
+        g.moveTo(ax, y + h);
+        g.lineTo(ax, top + aw / 2);
+        g.arc(cx, top + aw / 2, aw / 2, Math.PI, 0);
+        g.lineTo(ax + aw, y + h);
+        g.stroke();
+      }
+      break;
+    case "rings":
+      for (let i = 1; i <= 7; i++) { g.globalAlpha = 1 - i * 0.11; g.beginPath(); g.arc(cx, cy, i * (h / 15), 0, Math.PI * 2); g.stroke(); }
+      g.globalAlpha = 1;
+      g.beginPath(); g.arc(cx, cy, 6, 0, Math.PI * 2); g.fill();
+      break;
+    case "lines":
+      for (let r = 0; r < 6; r++) for (let c = 0; c < 7; c++) {
+        const on = (r * 7 + c) % 4 === 0;
+        const px = x + 10 + c * (w - 20) / 6, py = y + 10 + r * (h - 20) / 5;
+        g.beginPath(); g.arc(px, py, on ? 6 : 2.2, 0, Math.PI * 2);
+        on ? g.stroke() : g.fill();
+      }
+      break;
+    case "circles":
+      [[0.36, 0.42, 0.3], [0.62, 0.38, 0.26], [0.5, 0.66, 0.28]].forEach(([fx, fy, fr]) => {
+        g.beginPath(); g.arc(x + w * fx, y + h * fy, h * fr, 0, Math.PI * 2); g.stroke();
+      });
+      break;
+    case "diagonal":
+      g.beginPath(); g.rect(x, y, w, h); g.clip();
+      g.globalAlpha = 0.6;
+      for (let i = -h; i < w; i += 22) { g.beginPath(); g.moveTo(x + i, y + h); g.lineTo(x + i + h, y); g.stroke(); }
+      g.globalAlpha = 1;
+      break;
+  }
+  g.restore();
+}
+
+function drawPoster(g, PW, PH, p, idx, img) {
+  const th = THEMES[p.theme];
+  const M = 56;
+  g.fillStyle = th.bg;
+  g.fillRect(0, 0, PW, PH);
   if (img) {
     const s = Math.max(PW / img.width, PH / img.height);
     g.drawImage(img, (PW - img.width * s) / 2, (PH - img.height * s) / 2, img.width * s, img.height * s);
-    const shade = g.createLinearGradient(0, PH * 0.35, 0, PH);
-    shade.addColorStop(0, "rgba(0,0,0,0)");
-    shade.addColorStop(1, "rgba(0,0,0,0.65)");
-    g.fillStyle = shade;
+    g.fillStyle = rgba(th.bg, 0.72);
     g.fillRect(0, 0, PW, PH);
+  }
+  grain(g, PW, PH, 6000, p.theme === "dark");
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  const spaced = (px) => { if ("letterSpacing" in g) g.letterSpacing = px; };
+
+  // cabecera: número de experiencia y fechas
+  g.fillStyle = th.fg;
+  g.font = `500 21px ${FONT_SANS}`;
+  spaced("3px");
+  g.fillText(`EXPERIENCIA ${String(idx + 1).padStart(2, "0")}`, M, 78);
+  g.textAlign = "right";
+  g.fillText(p.years, PW - M, 78);
+  g.textAlign = "left";
+  g.fillStyle = rgba(th.fg, 0.3);
+  g.fillRect(M, 104, PW - M * 2, 2);
+
+  // área (acento terracota)
+  g.fillStyle = th.accent;
+  g.font = `600 20px ${FONT_SANS}`;
+  spaced("2px");
+  wrapLines(g, p.category.toUpperCase(), PW - M * 2).slice(0, 1).forEach((ln) => g.fillText(ln, M, 158));
+  spaced("0px");
+
+  // titular
+  g.fillStyle = th.fg;
+  g.font = `400 76px ${FONT_DISPLAY}`;
+  const lines = wrapLines(g, p.headline, PW - M * 2);
+  lines.forEach((ln, i) => {
+    g.font = i === lines.length - 1 ? `italic 400 76px ${FONT_DISPLAY}` : `400 76px ${FONT_DISPLAY}`;
+    g.fillText(ln, M - 2, 252 + i * 84);
+  });
+  const afterHead = 252 + (lines.length - 1) * 84;
+
+  // dato clave o motivo gráfico
+  const zoneY = Math.max(afterHead + 60, 470), zoneH = PH - 300 - zoneY;
+  if (p.metric) {
+    g.fillStyle = th.fg;
+    g.font = `400 112px ${FONT_DISPLAY}`;
+    g.fillText(p.metric.value, M - 4, zoneY + zoneH * 0.62);
+    g.fillStyle = rgba(th.fg, 0.75);
+    g.font = `500 20px ${FONT_SANS}`;
+    spaced("3px");
+    g.fillText(p.metric.label.toUpperCase(), M, zoneY + zoneH * 0.62 + 44);
+    spaced("0px");
   } else {
-    g.save();
-    switch (p.motif) {
-      case "arches": {
-        for (let i = 0; i < 3; i++) {
-          const aw = 420 - i * 110, ax = PW / 2 - aw / 2 + 90, top = 150 + i * 70, bottom = 760;
-          g.fillStyle = i === 2 ? rgba(p.accent, 0.85) : rgba(p.fg, 0.06 + i * 0.05);
-          g.beginPath();
-          g.moveTo(ax, bottom);
-          g.lineTo(ax, top + aw / 2);
-          g.arc(ax + aw / 2, top + aw / 2, aw / 2, Math.PI, 0);
-          g.lineTo(ax + aw, bottom);
-          g.closePath();
-          g.fill();
-        }
-        g.strokeStyle = p.accent; g.lineWidth = 2;
-        g.beginPath(); g.arc(PW / 2 - 140, 230, 70, 0, Math.PI * 2); g.stroke();
-        break;
-      }
-      case "rings": {
-        for (let i = 0; i < 16; i++) {
-          g.strokeStyle = rgba(p.fg, 0.5 - i * 0.028);
-          g.lineWidth = 1.5;
-          g.beginPath(); g.arc(PW * 0.7, PH * 0.3, 30 + i * 26, 0, Math.PI * 2); g.stroke();
-        }
-        g.fillStyle = p.accent;
-        g.beginPath(); g.arc(PW * 0.7, PH * 0.3, 22, 0, Math.PI * 2); g.fill();
-        g.fillStyle = rgba(p.fg, 0.92);
-        g.font = `italic 400 190px ${FONT_DISPLAY}`;
-        g.fillText("100K+", 40, PH * 0.56);
-        break;
-      }
-      case "circles": {
-        const pts = [[260, 300, 170], [470, 280, 150], [370, 470, 190], [560, 520, 120], [200, 560, 110]];
-        pts.forEach(([x, y, r], i) => {
-          g.fillStyle = i % 2 ? rgba(p.accent, 0.12) : rgba(p.fg, 0.05);
-          g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-          g.strokeStyle = rgba(p.fg, 0.55); g.lineWidth = 1.5; g.stroke();
-        });
-        break;
-      }
-      case "lines": {
-        g.strokeStyle = rgba(p.fg, 0.1);
-        for (let y = 80; y < PH * 0.72; y += 22) { g.beginPath(); g.moveTo(40, y); g.lineTo(PW - 40, y); g.stroke(); }
-        for (let r = 0; r < 7; r++) for (let c = 0; c < 9; c++) {
-          const on = (r * 9 + c) % 5 === 0;
-          g.fillStyle = on ? p.accent : rgba(p.fg, 0.45);
-          g.fillRect(110 + c * 64, 150 + r * 64, on ? 26 : 14, on ? 26 : 14);
-        }
-        break;
-      }
-      case "diagonal": {
-        g.strokeStyle = rgba(p.accent, 0.35); g.lineWidth = 1.5;
-        for (let i = -PH; i < PW; i += 46) { g.beginPath(); g.moveTo(i, PH * 0.7); g.lineTo(i + PH * 0.7, 0); g.stroke(); }
-        g.fillStyle = p.bg; g.fillRect(70, 170, PW - 140, 330);
-        g.strokeStyle = p.accent; g.strokeRect(70, 170, PW - 140, 330);
-        g.fillStyle = p.fg; g.textAlign = "center";
-        g.font = `italic 400 150px ${FONT_DISPLAY}`;
-        g.fillText("ES / EN", PW / 2, 390);
-        g.textAlign = "left";
-        break;
-      }
-      case "orbit": {
-        const glow = g.createRadialGradient(PW / 2, 380, 0, PW / 2, 380, 340);
-        glow.addColorStop(0, rgba(p.accent, 0.22));
-        glow.addColorStop(1, rgba(p.accent, 0));
-        g.fillStyle = glow; g.fillRect(0, 0, PW, PH);
-        g.strokeStyle = rgba(p.fg, 0.7); g.lineWidth = 1.5;
-        g.beginPath(); g.arc(PW / 2, 380, 150, 0, Math.PI * 2); g.stroke();
-        g.strokeStyle = rgba(p.fg, 0.35);
-        [-0.4, 0.5, 1.4].forEach((rot) => { g.beginPath(); g.ellipse(PW / 2, 380, 150, 48, rot, 0, Math.PI * 2); g.stroke(); });
-        g.fillStyle = p.accent; g.beginPath(); g.arc(PW / 2, 380, 8, 0, Math.PI * 2); g.fill();
-        break;
-      }
-    }
-    g.restore();
+    drawMotif(g, p.motif, PW - M - 250, zoneY, 250, zoneH, rgba(th.fg, 0.45));
   }
 
-  grain(g, PW, PH, 9000, p.fg === "#f5f5f3");
+  // pie: empresa, puesto y etiquetas
+  const base = PH - 268;
+  g.fillStyle = rgba(th.fg, 0.3);
+  g.fillRect(M, base, PW - M * 2, 1.5);
+  g.fillStyle = th.fg;
+  g.font = `400 50px ${FONT_DISPLAY}`;
+  g.fillText(p.company, M - 1, base + 66);
+  g.fillStyle = rgba(th.fg, 0.8);
+  g.font = `400 23px ${FONT_SANS}`;
+  wrapLines(g, p.role, PW - M * 2).slice(0, 2).forEach((ln, i) => g.fillText(ln, M, base + 108 + i * 30));
 
-  // tipografía
-  const fg = img ? "#ffffff" : p.fg;
-  g.fillStyle = fg;
-  g.font = `500 15px ${FONT_MONO}`;
-  g.fillText(p.client.toUpperCase(), 44, 64);
-  g.textAlign = "right";
-  g.fillText("N° " + String(idx + 1).padStart(2, "0"), PW - 44, 64);
-  g.textAlign = "left";
-  g.fillRect(44, 82, PW - 88, 1.5);
-
-  const lines = p.headline.split("\n");
-  g.font = `400 84px ${FONT_DISPLAY}`;
-  const lh = 86;
-  const startY = PH - 96 - (lines.length - 1) * lh - 64;
-  lines.forEach((ln, i) => {
-    g.font = i === lines.length - 1 ? `italic 400 84px ${FONT_DISPLAY}` : `400 84px ${FONT_DISPLAY}`;
-    g.fillText(ln, 40, startY + i * lh);
+  // etiquetas: solo las que caben en una línea, sin cortar
+  let tx = M;
+  const ty = PH - 86;
+  g.font = `500 19px ${FONT_SANS}`;
+  let full = false;
+  p.tags.forEach((tag) => {
+    const tw = g.measureText(tag).width + 34;
+    if (full || tx + tw > PW - M) { full = true; return; }
+    g.strokeStyle = rgba(th.fg, 0.5);
+    g.lineWidth = 2;
+    roundRect(g, tx, ty, tw, 44, 22);
+    g.stroke();
+    g.fillStyle = th.fg;
+    g.fillText(tag, tx + 17, ty + 29);
+    tx += tw + 10;
   });
-
-  g.fillRect(44, PH - 112, PW - 88, 1.5);
-  g.font = `400 14px ${FONT_MONO}`;
-  g.fillText(p.sub.toUpperCase(), 44, PH - 78);
-  g.textAlign = "right";
-  g.fillText(p.years, PW - 44, PH - 78);
-  g.textAlign = "left";
-  g.globalAlpha = 0.7;
-  g.font = `400 12px ${FONT_MONO}`;
-  g.fillText("ADRIANA BELLO — VISUAL CONCEPTUAL", 44, PH - 48);
-  g.globalAlpha = 1;
 }
 
 function makeRadialTexture(inner, outer) {
@@ -973,7 +1043,7 @@ function init() {
     g.font = `500 15px ${FONT_SANS}`;
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.fillText("C A M P A I G N   S T U D I O", 256, 16);
+    g.fillText("A D R I A N A   B E L L O", 256, 16);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     const label = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.026), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
@@ -998,7 +1068,7 @@ function init() {
 
   /* ---------- Capas del panel (vista desplegada) ---------- */
   const R = dashRects();
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x22385a, transparent: true, opacity: 0 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x2b5d57, transparent: true, opacity: 0 });
   const layers = LAYERS.map((name) => {
     const [x, y, w, h] = R[name];
     const c = document.createElement("canvas");
@@ -1018,10 +1088,31 @@ function init() {
     return { name, mesh, g, c, tex, rest, depth: LAYER_DEPTH[name], animated: ["header", "chart", "ai"].includes(name) };
   });
 
-  /* ---------- Piezas publicitarias ---------- */
-  const PW = 768, PH = 1024;
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x16171b, metalness: 0.3, roughness: 0.55 });
+  /* ---------- Fichas de experiencia ---------- */
+  const PW = 768, PH = 1024, CW = 1.5, CH = 2.0, CT = 0.03;
+  // reflejo de luz que sigue al ratón sobre la ficha
+  const glareCanvas = document.createElement("canvas");
+  glareCanvas.width = glareCanvas.height = 256;
+  {
+    const g = glareCanvas.getContext("2d");
+    const grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grd.addColorStop(0, "rgba(255,255,255,0.9)");
+    grd.addColorStop(0.35, "rgba(255,255,255,0.25)");
+    grd.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 256, 256);
+  }
+  const cardShape = rrShape(CW, CH, 0.014);
+  const cardGeo = new THREE.ShapeGeometry(cardShape, 6);
+  {
+    const uv = cardGeo.attributes.uv, pos = cardGeo.attributes.position;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, pos.getX(i) / CW + 0.5, pos.getY(i) / CH + 0.5);
+  }
+  const bodyGeo = new RoundedBoxGeometry(CW, CH, CT, 4, 0.014);
+  const GLARE_REP = new THREE.Vector2(1.25, 1.25 * (CH / CW));
+
   const posters = POSTERS.map((p, k) => {
+    const th = THEMES[p.theme];
     const c = document.createElement("canvas");
     c.width = PW; c.height = PH;
     const g = c.getContext("2d");
@@ -1034,15 +1125,23 @@ function init() {
       img.onload = () => { drawPoster(g, PW, PH, p, k, img); tex.needsUpdate = true; };
       img.src = p.image;
     }
-    const group = new THREE.Group();
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.56, 2.06, 0.03), frameMat);
-    frame.castShadow = true;
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2.0), new THREE.MeshBasicMaterial({ map: tex }));
-    plane.position.z = 0.017;
-    group.add(frame, plane);
+    const group = new THREE.Group();   // posición en la columna
+    const tilt = new THREE.Group();    // inclinación al pasar el ratón
+    group.add(tilt);
+    // cuerpo de la ficha (cartón grueso del color del tema)
+    const body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: new THREE.Color(th.bg).multiplyScalar(0.82), roughness: 0.7, metalness: 0, transparent: true }));
+    body.castShadow = true;
+    const front = new THREE.Mesh(cardGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+    front.position.z = CT / 2 + 0.001;
+    const gTex = new THREE.CanvasTexture(glareCanvas);
+    gTex.repeat.copy(GLARE_REP);
+    const glare = new THREE.Mesh(cardGeo, new THREE.MeshBasicMaterial({ map: gTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+    glare.position.z = CT / 2 + 0.003;
+    tilt.add(body, front, glare);
     group.visible = false;
     scene.add(group);
-    return { group, plane, canvas: c };
+    front.userData.k = k;
+    return { group, tilt, body, front, glare, gTex, canvas: c, hover: 0, tx: 0, ty: 0, u: 0.5, v: 0.5 };
   });
 
   /* ---------- Scroll → progreso ---------- */
@@ -1079,6 +1178,8 @@ function init() {
   pcCursor.setAttribute("aria-hidden", "true");
   pcCursor.innerHTML = "<i></i><span>Haz clic · el portátil escribe</span>";
   document.body.appendChild(pcCursor);
+  const pcLabel = pcCursor.querySelector("span");
+  let hoverCard = -1, lastCursorMode = "";
 
   window.addEventListener("pointermove", (e) => {
     mouse.set((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
@@ -1100,11 +1201,20 @@ function init() {
     hitLocal.copy(h.point);
     if (h.object === hitLid) {
       screenRoot.worldToLocal(hitLocal);
-      if (hitLocal.z < -0.005) return { part: "lid", world: h.point };
-      return { part: "screen", u: hitLocal.x / SCR_W + 0.5, v: hitLocal.y / SCR_H + 0.5, world: h.point };
+      if (hitLocal.z < -0.005) return { part: "lid", world: h.point, dist: h.distance };
+      return { part: "screen", u: hitLocal.x / SCR_W + 0.5, v: hitLocal.y / SCR_H + 0.5, world: h.point, dist: h.distance };
     }
     laptop.worldToLocal(hitLocal);
-    return { part: "deck", x: hitLocal.x, y: -hitLocal.z, world: h.point };
+    return { part: "deck", x: hitLocal.x, y: -hitLocal.z, world: h.point, dist: h.distance };
+  }
+
+  // ¿hay una ficha bajo el ratón? (solo las visibles)
+  function cardTest(nx, ny) {
+    ndc.set(nx, -ny);
+    raycaster.setFromCamera(ndc, camera);
+    const fronts = posters.filter((P) => P.group.visible && P.front.material.opacity > 0.5).map((P) => P.front);
+    const hits = raycaster.intersectObjects(fronts, false);
+    return hits.length ? { k: hits[0].object.userData.k, u: hits[0].uv.x, v: hits[0].uv.y, dist: hits[0].distance } : null;
   }
 
   // ondas de luz que recorren el teclado
@@ -1113,7 +1223,7 @@ function init() {
   const kbCenter = () => [KB.cx, KB.cy];
 
   // clic: el portátil teclea una frase y la pantalla la muestra
-  const PHRASES = ["Hola, soy Adriana.", "¿Abrimos la próxima campaña?", "Marketing con criterio + IA.", "Cuento historias para marcas."];
+  const PHRASES = ["Hola, soy Adriana.", "Comunicación interna y corporativa.", "Campañas, redes y comunidad.", "Disponible para incorporarme ya."];
   let phraseIdx = 0, typeQueue = [], nextTypeAt = 0, enterAt = -1, trackPulse = 0;
   function startTyping(t) {
     FX.cmd = "";
@@ -1125,7 +1235,13 @@ function init() {
   window.addEventListener("click", (e) => {
     if (e.target.closest && e.target.closest(UI_SEL)) return;
     const nx = (e.clientX / window.innerWidth) * 2 - 1, ny = (e.clientY / window.innerHeight) * 2 - 1;
+    const card = cardTest(nx, ny);
     const hit = hitTest(nx, ny);
+    if (card && (!hit || card.dist < hit.dist)) {
+      const el = document.getElementById("experiencia-" + (card.k + 1));
+      if (el) el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+      return;
+    }
     if (!hit) return;
     const t = clock.elapsedTime;
     trackPulse = 1;
@@ -1167,9 +1283,10 @@ function init() {
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), vB = new THREE.Vector3();
   const S = new THREE.Vector3(), qS = new THREE.Quaternion(), nS = new THREE.Vector3();
   const P1 = new THREE.Vector3(), P2 = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
-  const qOut = new THREE.Quaternion(), thumbW = new THREE.Vector3();
+  const qOut = new THREE.Quaternion(), qTmp = new THREE.Quaternion();
+  const railUp = new THREE.Vector3(), railN = new THREE.Vector3(), X_AXIS = new THREE.Vector3(1, 0, 0);
   const dummy = new THREE.Object3D();
-  const slot0 = new THREE.Vector3(CAR_R * Math.sin(THETA0), CAR_Y, CAR_Z + CAR_R * Math.cos(THETA0));
+  const slot0 = CARD_POS.clone();
 
   const lerpKey = (a, b, f, prop, out) => out.fromArray(KEYS[a][prop]).lerp(vB.fromArray(KEYS[b][prop]), f);
   const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -1201,15 +1318,15 @@ function init() {
       camLook.x *= 0.12;
       camPos.x *= 0.8;
       camPos.z = camPos.z * 1.5 + 0.5;
-      camLook.y -= 0.35;
+      camLook.y -= 0.35 + 1.3 * (1 - clamp01(progress)); // en la portada, el portátil más arriba (sobre el texto)
       // un poco más lejos para que el portátil (y su despiece) quepa en vertical
       tmp.copy(camPos).sub(camLook).multiplyScalar(1.14);
       camPos.copy(camLook).add(tmp);
       // en las campañas, la cámara encuadra la pieza publicada con algo de aire
       const wp = clamp01(progress - 1.3) * (1 - clamp01(progress - (ROOM_LAB - 0.6)));
-      tmp2.copy(slot0).add(tmp.set(-0.35, 0.15, 0));
+      tmp2.copy(slot0).add(tmp.set(-0.05, 0.15, 0));
       camLook.lerp(tmp2, wp);
-      camPos.lerp(tmp.set(tmp2.x + Math.sin(THETA0) * 7.2, tmp2.y + 0.5, tmp2.z + Math.cos(THETA0) * 7.2), wp);
+      camPos.lerp(tmp.copy(tmp2).addScaledVector(CARD_DIR, 7.6).add(tmp3.set(0, 0.5, 0)), wp); // de frente a la ficha
     }
     mouseS.lerp(mouse, Math.min(1, dt * 2.5));
     camPos.x += mouseS.x * 0.25;
@@ -1220,7 +1337,18 @@ function init() {
     camera.updateMatrixWorld();
 
     /* --- Hover: ¿el ratón está sobre el portátil? --- */
-    const hit = pointerIn && !overUI && !isTouch && fade > 0.8 ? hitTest(mouse.x, mouse.y) : null;
+    const canHover = pointerIn && !overUI && !isTouch && fade > 0.8;
+    const card = canHover ? cardTest(mouse.x, mouse.y) : null;
+    let hit = canHover ? hitTest(mouse.x, mouse.y) : null;
+    if (card && hit && card.dist < hit.dist) hit = null;
+    hoverCard = card && !hit ? card.k : -1;
+    if (hoverCard >= 0) { posters[hoverCard].u = card.u; posters[hoverCard].v = card.v; }
+    const cursorMode = hoverCard >= 0 ? "card" : hit ? "pc" : "";
+    if (cursorMode !== lastCursorMode) {
+      document.documentElement.classList.toggle("pc-hover", !!cursorMode);
+      if (cursorMode) pcLabel.textContent = cursorMode === "card" ? "Ver experiencia" : "Haz clic · el portátil escribe";
+      lastCursorMode = cursorMode;
+    }
     // en móvil no hay hover: al tocar el portátil reacciona igual durante unos segundos
     const hovering = !!hit || t < touchHoverUntil;
     const k4 = Math.min(1, dt * 4);
@@ -1230,7 +1358,6 @@ function init() {
     if (hit && hit.part === "deck") deckPt.set(hit.x, hit.y);
     if (hit && hit.part === "screen") uvS.lerp(ndc.set(hit.u, hit.v), Math.min(1, dt * 14));
     if (hovering !== wasHover) {
-      document.documentElement.classList.toggle("pc-hover", hovering);
       // al entrar, una onda de luz recorre el teclado desde el punto del ratón
       if (hovering) {
         const [rx, ry] = hit && hit.part === "deck" ? [hit.x, hit.y] : kbCenter();
@@ -1283,21 +1410,21 @@ function init() {
     let kActive = 0;
     if (progress >= ROOM_LAB + 0.7) mode = "contact";
     else if (progress >= ROOM_LAB - 0.4) mode = "studio";
-    else if (progress >= 1.6) { mode = "publish"; kActive = Math.min(NP - 1, Math.max(0, Math.floor(progress - 1.6))); }
+    else if (progress >= ROOM_FIRST_PIECE - 0.5) { mode = "case"; kActive = Math.min(NP - 1, Math.max(0, Math.round(progress - ROOM_FIRST_PIECE))); }
     const sKey = mode + kActive;
     if (sKey !== screenKey) {
       if (screenKey) {
-        // publicar = pulsar Intro + clic en el trackpad; la onda sale de la tecla
+        // cada cambio de experiencia = Intro + clic en el trackpad; la onda sale de la tecla
         const ent = keyList[keyIndex["↵"]];
         pressKey("↵");
-        if (mode === "publish") trackPulse = 1;
+        if (mode === "case") trackPulse = 1;
         addRipple(ent.x, ent.y, t, mode === "contact" ? 1.6 : 1.1);
       }
       screenKey = sKey; publishSince = t; lastDraw = -1;
     }
     const fps = screenS > 0.01 || typeQueue.length || cmdActive(t) ? 30 : 15;
     if (t - lastDraw > 1 / fps) {
-      drawScreenBase(sg, mode, t, { k: kActive, posterCanvas: posters[kActive].canvas, since: publishSince });
+      drawScreenBase(sg, mode, t, { k: kActive, since: publishSince });
       scrTex.needsUpdate = true;
       if (layerAlpha > 0.01) {
         layers.forEach((L) => {
@@ -1309,7 +1436,7 @@ function init() {
       lastDraw = t;
     }
     // la pantalla ilumina el teclado (menos cuando es oscura)
-    scrLight.intensity = power * (mode === "studio" ? 0.25 : 0.7);
+    scrLight.intensity = power * (mode === "studio" || mode === "contact" ? 0.3 : 0.7);
 
     /* --- Teclado sincronizado con lo que se escribe en pantalla --- */
     if (typeQueue.length && t >= nextTypeAt) {
@@ -1372,48 +1499,46 @@ function init() {
     trackpad.position.y = T + 0.0012 - trackPulse * 0.0018;
     trackpad.material.emissive.setRGB(0.12 * trackPulse, 0.14 * trackPulse, 0.2 * trackPulse);
 
-    /* --- 02–09: cada campaña se levanta de la pantalla y apila a las anteriores --- */
+    /* --- 02–06: columna de fichas que gira con el scroll --- */
     laptop.updateMatrixWorld(true);
-    screenRoot.getWorldPosition(S);
-    screenRoot.getWorldQuaternion(qS);
-    nS.set(0, 0, 1).applyQuaternion(qS);
-    thumbW.copy(THUMB.pos);
-    screenRoot.localToWorld(thumbW);
-    const wc = ease((progress - (ROOM_LAB + 0.3)) / 0.6);
-    const emerge = (k) => ease((progress - (1.6 + k)) / 0.5);
+    P2.copy(CARD_POS);
+    faceDir(P2, CARD_DIR, qOut);
+    railUp.set(0, 1, 0).applyQuaternion(qOut);
+    railN.set(0, 0, 1).applyQuaternion(qOut);
+    const kSmooth = Math.min(1, dt * 8);
 
-    slot(THETA0, P2);
-    faceDir(P2, tmp.set(Math.sin(THETA0), 0, Math.cos(THETA0) + 0.9).normalize(), qOut);
-    P1.copy(S).addScaledVector(nS, 1.2).add(tmp.set(0.4, 0.25, 0));
+    posters.forEach((P, k) => {
+      // d < 0: la ficha viene por abajo · d = 0: al frente · d > 0: sale por arriba
+      const d = progress - (ROOM_FIRST_PIECE + k);
+      // al salir de la experiencia (hacia Proyectos) la columna desaparece del todo
+      const leave = 1 - ease((progress - (ROOM_LAB - 0.7)) / 0.35);
+      const vis = (reduceMotion ? (Math.abs(d) < 0.5 ? 1 : 0) : 1 - ease((Math.abs(d) - 0.7) / 0.55)) * leave;
+      P.group.visible = vis > 0.01;
+      if (!P.group.visible) { P.hover = 0; return; }
+      const a = THREE.MathUtils.clamp(d, -2, 2) * RAIL_STEP;
+      const focus = 1 - Math.min(1, Math.abs(d));
+      P.group.position.copy(P2)
+        .addScaledVector(railUp, Math.sin(a) * RAIL_R)
+        .addScaledVector(railN, -(1 - Math.cos(a)) * RAIL_R);
+      P.group.position.y += Math.sin(tm * 0.8 + k) * 0.018 * focus;
+      P.group.quaternion.copy(qOut).multiply(qTmp.setFromAxisAngle(X_AXIS, -a));
+      P.group.scale.setScalar(1.0 + 0.18 * focus);
 
-    posters.forEach(({ group, plane }, k) => {
-      const em = emerge(k);
-      // nivel en la pila = campañas publicadas después de esta (continuo)
-      let lvl = 0;
-      for (let j = k + 1; j < NP; j++) lvl += emerge(j);
+      // hover: se inclina hacia el ratón, se adelanta y la recorre un reflejo
+      const on = hoverCard === k;
+      P.hover += ((on ? 1 : 0) - P.hover) * Math.min(1, dt * 6);
+      P.tx += ((on ? -(P.v - 0.5) * 0.34 : 0) - P.tx) * kSmooth;
+      P.ty += ((on ? (P.u - 0.5) * 0.4 : 0) - P.ty) * kSmooth;
+      P.tilt.rotation.set(P.tx, P.ty, 0);
+      P.tilt.position.z = 0.18 * P.hover;
+      P.tilt.scale.setScalar(1 + 0.035 * P.hover);
+      P.gTex.offset.set(0.5 - P.u * GLARE_REP.x, 0.5 - P.v * GLARE_REP.y);
+      P.glare.material.opacity = 0.3 * P.hover * vis;
 
-      // 1) se levanta desde su miniatura en pantalla hasta el primer plano
-      const u = em, iu = 1 - u;
-      group.position.set(
-        iu * iu * thumbW.x + 2 * iu * u * P1.x + u * u * P2.x,
-        iu * iu * thumbW.y + 2 * iu * u * P1.y + u * u * P2.y,
-        iu * iu * thumbW.z + 2 * iu * u * P1.z + u * u * P2.z
-      );
-      group.quaternion.copy(qS).slerp(qOut, em);
-
-      // 2) retrocede un paso por cada campaña nueva
-      group.position.add(tmp.copy(STACK_STEP).multiplyScalar(lvl).applyQuaternion(qOut));
-      group.position.y += Math.sin(tm * 0.6 + k) * 0.025 * em * (1 - Math.min(1, lvl));
-
-      // 3) contacto: todas vuelven a la pantalla
-      group.position.lerp(S, wc);
-      group.quaternion.slerp(qS, wc);
-
-      const gone = ease(lvl - 1.7); // solo se ven 2 niveles detrás
-      const sc = THREE.MathUtils.lerp(THUMB.scale, 1, em) * Math.pow(0.93, lvl) * (1 - gone) * (1 - 0.85 * wc);
-      group.scale.setScalar(Math.max(0.001, sc));
-      plane.material.color.setScalar(1 - 0.2 * Math.min(lvl, 2.5));
-      group.visible = em > 0.002 && wc < 0.995 && gone < 0.995;
+      const dim = 0.78 + 0.22 * Math.max(focus, P.hover);
+      P.front.material.color.setScalar(dim);
+      P.front.material.opacity = vis;
+      P.body.material.opacity = vis;
     });
 
     renderer.render(scene, camera);
