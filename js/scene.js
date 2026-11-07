@@ -50,9 +50,9 @@ const ROOM_LAB = 2 + NP;
 const ROOM_CONTACT = ROOM_LAB + 1;
 
 /* ---------- Portátil ---------- */
-const W = 3.0, D = 2.05, T = 0.1, LH = 1.95, LT = 0.05;
+const W = 3.0, D = 2.05, T = 0.072, LH = 1.95, LT = 0.034;
 const OPEN = -0.3, CLOSED = Math.PI / 2 - 0.02;
-const SCR_W = W - 0.12, SCR_H = LH - 0.12;
+const SCR_W = W - 0.08, SCR_H = LH - 0.1;
 
 /* ---------- Carrusel ---------- */
 const CAR_R = 3.3, CAR_Y = 1.35, CAR_Z = -0.4, THETA0 = 0.95;
@@ -95,7 +95,7 @@ function wrapText(g, text, x, y, maxW, lh) {
    Pantalla
    ========================================================== */
 const SW = 1024, SH = Math.round(1024 * (SCR_H / SCR_W));
-const PAD = 22;
+const PAD = 8;
 
 // Rectángulos de cada capa del panel (en píxeles de la pantalla)
 function dashRects() {
@@ -192,7 +192,7 @@ function drawScreenBase(g, mode, t, info) {
   g.fillRect(0, 0, SW, SH);
   const x0 = PAD, y0 = PAD, w = SW - PAD * 2, h = SH - PAD * 2;
   g.save();
-  roundRect(g, x0, y0, w, h, 6);
+  roundRect(g, x0, y0, w, h, 16);
   g.clip();
   g.fillStyle = "#f3f2ef";
   g.fillRect(x0, y0, w, h);
@@ -277,47 +277,119 @@ function drawScreenBase(g, mode, t, info) {
     g.textAlign = "left";
   }
   g.restore();
-  g.fillStyle = "#24272e";
-  g.beginPath(); g.arc(SW / 2, 11, 3.5, 0, Math.PI * 2); g.fill();
+  // notch con cámara
+  g.fillStyle = "#050506";
+  roundRect(g, SW / 2 - 62, -12, 124, 34, 12);
+  g.fill();
+  g.fillStyle = "#1d2230";
+  g.beginPath(); g.arc(SW / 2, 10, 4.5, 0, Math.PI * 2); g.fill();
+  g.fillStyle = "rgba(120,140,190,0.6)";
+  g.beginPath(); g.arc(SW / 2 - 1.2, 8.8, 1.4, 0, Math.PI * 2); g.fill();
 }
 
-/* --- Teclado + trackpad --- */
+/* --- Cubierta: aluminio cepillado, hueco del teclado, altavoces, trackpad --- */
+// Zonas en unidades locales (x: -W/2..W/2, y: -D/2..D/2; +y = hacia la bisagra)
+const KB = { cx: 0, cy: D * 0.165, w: W * 0.79, h: D * 0.42 };
+const TP = { cx: 0, cy: -D * 0.275, w: W * 0.4, h: D * 0.3 };
+const SPK = { x: W * 0.445, cy: KB.cy, w: W * 0.055, h: KB.h };
+
 function makeDeckTexture() {
-  const KW = 1024, KH = Math.round(1024 * (D / W));
+  const KW = 2048, KH = Math.round(2048 * (D / W));
   const c = document.createElement("canvas");
   c.width = KW; c.height = KH;
   const g = c.getContext("2d");
+  const px = (x) => (x / W + 0.5) * KW;
+  const py = (y) => (0.5 - y / D) * KH;
+  const sx = (w) => (w / W) * KW;
+  const sy = (h) => (h / D) * KH;
+
+  // aluminio anodizado con cepillado fino
   const grd = g.createLinearGradient(0, 0, KW, KH);
-  grd.addColorStop(0, "#d8c4a2");
-  grd.addColorStop(1, "#c4ab84");
+  grd.addColorStop(0, "#e3d8c6");
+  grd.addColorStop(0.5, "#d8cab4");
+  grd.addColorStop(1, "#cfc0a8");
   g.fillStyle = grd;
   g.fillRect(0, 0, KW, KH);
-  grain(g, KW, KH, 9000, true);
-  // teclas
-  const kx = 120, ky = 60, kw = KW - 240, kh = KH * 0.5;
-  g.fillStyle = "rgba(60,48,32,0.25)";
-  roundRect(g, kx - 10, ky - 10, kw + 20, kh + 20, 10);
-  g.fill();
-  const cols = 14, rows = 6, gap = 7;
-  const cw = (kw - gap * (cols - 1)) / cols, ch = (kh - gap * (rows - 1)) / rows;
-  for (let r = 0; r < rows; r++) {
-    for (let col = 0; col < cols; col++) {
-      if (r === rows - 1 && col > 3 && col < 10) {
-        if (col === 4) { g.fillStyle = "#1b1d22"; roundRect(g, kx + col * (cw + gap), ky + r * (ch + gap), cw * 6 + gap * 5, ch, 6); g.fill(); }
-        continue;
-      }
-      g.fillStyle = "#1b1d22";
-      roundRect(g, kx + col * (cw + gap), ky + r * (ch + gap), cw, ch, 6);
-      g.fill();
-    }
+  for (let i = 0; i < 1400; i++) {
+    const y = Math.random() * KH;
+    g.strokeStyle = Math.random() < 0.5 ? `rgba(255,255,255,${Math.random() * 0.06})` : `rgba(90,70,40,${Math.random() * 0.04})`;
+    g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, y); g.lineTo(KW, y + (Math.random() - 0.5) * 2); g.stroke();
   }
-  // trackpad
-  g.fillStyle = "rgba(255,255,255,0.18)";
-  roundRect(g, KW / 2 - 190, ky + kh + 46, 380, KH - (ky + kh + 46) - 34, 14);
+
+  // hueco del teclado
+  const kx = px(KB.cx - KB.w / 2), ky = py(KB.cy + KB.h / 2), kw = sx(KB.w), kh = sy(KB.h);
+  g.fillStyle = "rgba(40,34,26,0.85)";
+  roundRect(g, kx - 10, ky - 10, kw + 20, kh + 20, 18);
   g.fill();
-  g.strokeStyle = "rgba(80,62,38,0.25)";
-  g.lineWidth = 2;
+  const inner = g.createLinearGradient(0, ky, 0, ky + kh);
+  inner.addColorStop(0, "rgba(0,0,0,0.35)");
+  inner.addColorStop(0.08, "rgba(0,0,0,0)");
+  g.fillStyle = inner;
+  g.fillRect(kx - 10, ky - 10, kw + 20, kh + 20);
+
+  // rejillas de altavoz perforadas
+  [-1, 1].forEach((side) => {
+    const gx = px(side * SPK.x - SPK.w / 2), gy = py(SPK.cy + SPK.h / 2), gw = sx(SPK.w), gh = sy(SPK.h);
+    g.fillStyle = "rgba(50,40,28,0.55)";
+    let row = 0;
+    for (let yy = gy + 6; yy < gy + gh - 4; yy += 11, row++) {
+      for (let xx = gx + 6; xx < gx + gw - 8; xx += 11) {
+        g.beginPath(); g.arc(xx + (row % 2 ? 5 : 0), yy, 2.4, 0, Math.PI * 2); g.fill();
+      }
+    }
+  });
+
+  // contorno del trackpad
+  const tx = px(TP.cx - TP.w / 2), ty = py(TP.cy + TP.h / 2), tw = sx(TP.w), th = sy(TP.h);
+  g.strokeStyle = "rgba(255,255,255,0.55)";
+  g.lineWidth = 3;
+  roundRect(g, tx - 3, ty - 3, tw + 6, th + 6, 26);
   g.stroke();
+  g.strokeStyle = "rgba(90,70,40,0.25)";
+  g.lineWidth = 2;
+  roundRect(g, tx - 6, ty - 6, tw + 12, th + 12, 28);
+  g.stroke();
+
+  // muesca frontal para abrir la tapa
+  const notch = g.createRadialGradient(KW / 2, KH, 0, KW / 2, KH, 150);
+  notch.addColorStop(0, "rgba(70,55,35,0.45)");
+  notch.addColorStop(1, "rgba(70,55,35,0)");
+  g.fillStyle = notch;
+  g.beginPath(); g.ellipse(KW / 2, KH, 150, 38, 0, Math.PI, 0); g.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function rrShape(w, h, r) {
+  const s = new THREE.Shape();
+  const x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);
+  s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r);
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h);
+  s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r);
+  s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+
+function makeLogoTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d");
+  g.strokeStyle = "#fff";
+  g.lineWidth = 6;
+  g.beginPath(); g.arc(128, 128, 110, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = "#fff";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.font = `400 112px ${FONT_DISPLAY}`;
+  g.fillText("AB", 128, 136);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
@@ -534,36 +606,133 @@ function init() {
   contactShadow.position.set(0, 0.002, -0.2);
   scene.add(contactShadow);
 
-  /* ---------- Portátil ---------- */
-  const alu = new THREE.MeshStandardMaterial({ color: 0xd2bb95, metalness: 0.85, roughness: 0.3, envMapIntensity: 1.1 });
+  /* ---------- Portátil (modelo refinado) ---------- */
+  const alu = new THREE.MeshPhysicalMaterial({
+    color: 0xd9ccb6, metalness: 0.78, roughness: 0.34, clearcoat: 0.25, clearcoatRoughness: 0.4, envMapIntensity: 1.15
+  });
   const laptop = new THREE.Group();
   scene.add(laptop);
 
-  const base = new THREE.Mesh(new RoundedBoxGeometry(W, T, D, 4, 0.035), alu);
+  // base fina con esquinas suaves
+  const base = new THREE.Mesh(new RoundedBoxGeometry(W, T, D, 6, 0.03), alu);
   base.position.y = T / 2;
   base.castShadow = true;
   laptop.add(base);
 
   const deckTex = makeDeckTexture();
   deckTex.anisotropy = maxAniso;
+  const deckGeo = new THREE.ShapeGeometry(rrShape(W - 0.03, D - 0.03, 0.05), 8);
+  {
+    const uv = deckGeo.attributes.uv, pos = deckGeo.attributes.position;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, pos.getX(i) / W + 0.5, pos.getY(i) / D + 0.5);
+  }
   const deck = new THREE.Mesh(
-    new THREE.PlaneGeometry(W - 0.06, D - 0.06),
-    new THREE.MeshStandardMaterial({ map: deckTex, metalness: 0.5, roughness: 0.4 })
+    deckGeo,
+    new THREE.MeshPhysicalMaterial({ map: deckTex, metalness: 0.6, roughness: 0.38, clearcoat: 0.2, envMapIntensity: 1 })
   );
   deck.rotation.x = -Math.PI / 2;
-  deck.position.y = T + 0.001;
+  deck.position.y = T + 0.0006;
+  deck.receiveShadow = true;
   laptop.add(deck);
 
+  // filo pulido (diamond-cut) alrededor de la cubierta
+  const edgePts = rrShape(W - 0.012, D - 0.012, 0.035).getPoints(24).map((p) => new THREE.Vector3(p.x, T + 0.0008, -p.y));
+  laptop.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(edgePts), new THREE.LineBasicMaterial({ color: 0xfff6e8 })));
+
+  // teclas 3D
+  const keyMat = new THREE.MeshStandardMaterial({ color: 0x1b1c20, roughness: 0.55, metalness: 0.15 });
+  const rowsDef = [
+    { units: Array(14).fill(1), h: 0.6 },
+    { units: [...Array(13).fill(1), 1.55], h: 1 },
+    { units: [1.55, ...Array(13).fill(1)], h: 1 },
+    { units: [1.85, ...Array(11).fill(1), 1.85], h: 1 },
+    { units: [2.35, ...Array(10).fill(1), 2.35], h: 1 },
+    { units: [1, 1, 1, 1.3, 5.6, 1.3, 1, 1, 1], h: 1 }
+  ];
+  const keyGap = 0.012, kbMargin = 0.03;
+  const kbW = KB.w - kbMargin * 2, kbH = KB.h - kbMargin * 2;
+  const unitH = (kbH - keyGap * (rowsDef.length - 1)) / rowsDef.reduce((acc, r) => acc + r.h, 0);
+  const keyCount = rowsDef.reduce((acc, r) => acc + r.units.length, 0);
+  const keys = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 2, 0.18), keyMat, keyCount);
+  keys.castShadow = true;
+  const km = new THREE.Matrix4();
+  let ki = 0;
+  let rowTop = KB.cy + KB.h / 2 - kbMargin;
+  rowsDef.forEach((row) => {
+    const rh = unitH * row.h;
+    const totalU = row.units.reduce((acc, u) => acc + u, 0);
+    const unitW = (kbW - keyGap * (row.units.length - 1)) / totalU;
+    let x = KB.cx - kbW / 2;
+    row.units.forEach((u) => {
+      const kw = unitW * u;
+      km.compose(
+        new THREE.Vector3(x + kw / 2, T + 0.0045, -(rowTop - rh / 2)),
+        new THREE.Quaternion(),
+        new THREE.Vector3(kw - 0.004, 0.009, rh - 0.004)
+      );
+      keys.setMatrixAt(ki++, km);
+      x += kw + keyGap;
+    });
+    rowTop -= rh + keyGap;
+  });
+  laptop.add(keys);
+
+  // trackpad de cristal
+  const trackpad = new THREE.Mesh(
+    new THREE.ShapeGeometry(rrShape(TP.w, TP.h, 0.035), 8),
+    new THREE.MeshPhysicalMaterial({ color: 0xcdbfa8, metalness: 0.35, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 0.55 })
+  );
+  trackpad.rotation.x = -Math.PI / 2;
+  trackpad.position.set(TP.cx, T + 0.0012, -TP.cy);
+  laptop.add(trackpad);
+
+  // puertos laterales
+  const portMat = new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.6 });
+  [[-W / 2, -0.45, 0.075], [-W / 2, -0.25, 0.075], [W / 2, 0.55, 0.035]].forEach(([x, z, len]) => {
+    const port = new THREE.Mesh(new RoundedBoxGeometry(0.01, 0.022, len, 2, 0.004), portMat);
+    port.position.set(x, T * 0.5, z);
+    laptop.add(port);
+  });
+
+  // bisagra
+  const hinge = new THREE.Mesh(
+    new THREE.CylinderGeometry(LT * 0.55, LT * 0.55, W - 0.7, 32),
+    new THREE.MeshStandardMaterial({ color: 0x2a2b30, metalness: 0.6, roughness: 0.35 })
+  );
+  hinge.rotation.z = Math.PI / 2;
+  hinge.position.set(0, T + LT * 0.2, -D / 2 + LT * 0.55);
+  laptop.add(hinge);
+
+  // tapa
   const lidPivot = new THREE.Group();
   lidPivot.position.set(0, T + LT / 2, -D / 2 + LT / 2);
   laptop.add(lidPivot);
-  const lid = new THREE.Mesh(new RoundedBoxGeometry(W, LH, LT, 4, 0.03), alu);
+  const lid = new THREE.Mesh(new RoundedBoxGeometry(W, LH, LT, 6, 0.016), alu);
   lid.position.y = LH / 2;
   lid.castShadow = true;
   lidPivot.add(lid);
 
+  // cristal negro de borde a borde
+  const bezel = new THREE.Mesh(
+    new THREE.ShapeGeometry(rrShape(W - 0.018, LH - 0.018, 0.05), 10),
+    new THREE.MeshPhysicalMaterial({ color: 0x07080a, metalness: 0, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.4 })
+  );
+  bezel.position.set(0, LH / 2, LT / 2 + 0.0008);
+  lidPivot.add(bezel);
+  const lidEdgePts = rrShape(W - 0.006, LH - 0.006, 0.02).getPoints(24).map((p) => new THREE.Vector3(p.x, p.y + LH / 2, LT / 2 + 0.0004));
+  lidPivot.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(lidEdgePts), new THREE.LineBasicMaterial({ color: 0xf6ecdc })));
+
+  // logo grabado en la parte trasera
+  const logo = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.34, 0.34),
+    new THREE.MeshStandardMaterial({ color: 0xfff3dd, map: makeLogoTexture(), transparent: true, alphaTest: 0.4, metalness: 1, roughness: 0.12 })
+  );
+  logo.position.set(0, LH / 2, -LT / 2 - 0.0012);
+  logo.rotation.y = Math.PI;
+  lidPivot.add(logo);
+
   const screenRoot = new THREE.Group();
-  screenRoot.position.set(0, LH / 2, LT / 2 + 0.002);
+  screenRoot.position.set(0, LH / 2, LT / 2 + 0.0018);
   lidPivot.add(screenRoot);
 
   const scrCanvas = document.createElement("canvas");
@@ -574,6 +743,15 @@ function init() {
   scrTex.anisotropy = maxAniso;
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(SCR_W, SCR_H), new THREE.MeshBasicMaterial({ map: scrTex }));
   screenRoot.add(screen);
+
+  // reflejo del cristal (cambia con el ángulo de visión)
+  const glass = new THREE.Mesh(
+    new THREE.PlaneGeometry(W - 0.02, LH - 0.02),
+    new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0.03, transparent: true, opacity: 0.08, envMapIntensity: 2, depthWrite: false })
+  );
+  glass.position.set(0, LH / 2, LT / 2 + 0.0035);
+  glass.renderOrder = 2;
+  lidPivot.add(glass);
 
   /* ---------- Capas del panel (vista desplegada) ---------- */
   const R = dashRects();

@@ -2,7 +2,7 @@
 
 Portafolio 3D de **Adriana del Pilar Bello Guzmán**: marketing, comunicación corporativa e imagen pública, potenciados con IA generativa.
 
-Al entrar aparece un **portátil de aluminio champán** con un panel de marketing en vivo. Al hacer scroll se **rompe en fragmentos de cristal**, la cámara viaja por un túnel y de él salen **seis piezas publicitarias**, una por cada etapa profesional, con paneles de datos. Al final el portátil se recompone y muestra el contacto.
+Al entrar aparece un **portátil de aluminio champán** con un panel de marketing en vivo. Al hacer scroll, la pantalla **se despliega en sus capas** (vista de diseño), después cada campaña **se publica y sale proyectada de la pantalla**, y al publicarse la siguiente se cuelga en un **muro de campañas** detrás del portátil. Al final todas vuelven a la pantalla, que muestra el contacto.
 
 ## Secciones
 
@@ -35,23 +35,5 @@ Dirección: `https://altesreich.github.io/mkpilar/`
 
 ## Tecnología
 
-HTML, CSS y JavaScript sin build. [Three.js r160](https://threejs.org/) por CDN: fragmentación procedural por triángulos, texturas generadas en canvas (pantalla en vivo, teclado y pósters) y cámara guiada por el scroll. Respeta `prefers-reduced-motion` y tiene versión sin WebGL.
+HTML, CSS y JavaScript sin build. [Three.js r160](https://threejs.org/) por CDN: portátil modelado en código (teclas 3D, pantalla de cristal con notch, trackpad, bisagra), pantalla que se despliega en capas, campañas proyectadas con haz de luz, muro de campañas publicadas, texturas generadas en canvas y cámara guiada por el scroll. Respeta `prefers-reduced-motion` y tiene versión sin WebGL.
 
----
-
-# La Vitrina (`/vitrina/`)
-
-Segunda experiencia, independiente de la anterior. Traslada al marketing el lenguaje de los sitios inmersivos de una sola escena:
-
-| Evento | Equivalente en marketing |
-| --- | --- |
-| Intro | Cuenta atrás de spot publicitario (3·2·1) y elección de entrar con sonido o en silencio |
-| Escena principal | Pabellón de cristal (tienda insignia) con el monograma AB, en un paisaje de vallas publicitarias en blanco |
-| Primer scroll | El pabellón se desmonta en sus paneles: manifiesto "una marca se construye pieza a pieza" |
-| Proyectos | Seis vitrinas de cristal, cada una con un objeto simbólico (arco, micrófono, megáfono, sobre, globo, cristal) |
-| Transiciones | Flash de cámara de prensa con separación RGB y sonido de obturador |
-| HUD | Texto que se descifra (*scramble*), reloj de Tarancón, índice de secciones y progreso |
-| Final | Partículas que forman AB, @, CV o ↑ según el enlace que se señala |
-| Sonido | Ambiente y efectos sintetizados con Web Audio (sin archivos) |
-
-Dirección: `https://altesreich.github.io/mkpilar/vitrina/`
