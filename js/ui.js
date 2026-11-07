@@ -1,48 +1,85 @@
-/* Archivo Orbital · interfaz (independiente de la escena 3D) */
+/* Campaign Studio · interfaz (independiente de la escena 3D) */
 (function () {
   "use strict";
 
   var root = document.documentElement;
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---------- Loader ---------- */
-  var loaded = false;
-  function finishLoading() {
-    if (loaded) return;
-    loaded = true;
-    root.classList.add("is-loaded");
+  /* ---------- Texto "scramble" ---------- */
+  var GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/·—+#";
+  function scramble(el) {
+    if (el.dataset.scrambled) return;
+    el.dataset.scrambled = "1";
+    var final = el.textContent;
+    if (reduceMotion) return;
+    var frame = 0;
+    var total = Math.min(36, 14 + final.length);
+    (function tick() {
+      var out = "";
+      for (var i = 0; i < final.length; i++) {
+        var settle = (i / final.length) * total * 0.7 + total * 0.3;
+        if (final[i] === " " || frame >= settle) out += final[i];
+        else out += GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      }
+      el.textContent = out;
+      frame++;
+      if (frame <= total) requestAnimationFrame(tick);
+      else el.textContent = final;
+    })();
   }
+
+  /* ---------- Loader con contador ---------- */
+  var loaded = false;
+  var countEl = document.querySelector(".loader__count span");
+  var barEl = document.querySelector(".loader__bar i");
+  var shown = 0;
+  var target = 0;
+  var loaderTimer = setInterval(function () {
+    target = Math.min(loaded ? 100 : 92, target + Math.random() * 9);
+    shown += (target - shown) * 0.35;
+    var v = Math.round(shown);
+    if (countEl) countEl.textContent = v;
+    if (barEl) barEl.style.width = v + "%";
+    if (loaded && v >= 99) {
+      clearInterval(loaderTimer);
+      if (countEl) countEl.textContent = 100;
+      setTimeout(function () {
+        root.classList.add("is-loaded");
+        document.querySelectorAll(".stage--hero [data-scramble]").forEach(scramble);
+      }, 250);
+    }
+  }, 60);
+  function finishLoading() { loaded = true; }
   window.addEventListener("scene-ready", finishLoading);
-  window.addEventListener("load", function () { setTimeout(finishLoading, 2600); });
-  setTimeout(finishLoading, 6000);
+  window.addEventListener("load", function () { setTimeout(finishLoading, 3000); });
+  setTimeout(finishLoading, 7000);
 
   /* ---------- Año ---------- */
   document.querySelectorAll("[data-year]").forEach(function (el) {
     el.textContent = new Date().getFullYear();
   });
 
-  /* ---------- Cabecera + barra de progreso ---------- */
-  var bar = document.querySelector(".rooms-index__bar i");
+  /* ---------- HUD: progreso + sección ---------- */
+  var bar = document.querySelector(".hud-progress i");
+  var pct = document.querySelector(".hud-pct");
   function onScroll() {
     var max = document.documentElement.scrollHeight - window.innerHeight;
     var p = max > 0 ? window.scrollY / max : 0;
-    if (bar) bar.style.transform = "scaleY(" + p.toFixed(4) + ")";
-    root.classList.toggle("is-scrolled", window.scrollY > 40);
+    if (bar) bar.style.transform = "scaleX(" + p.toFixed(4) + ")";
+    if (pct) pct.textContent = String(Math.round(p * 100)).padStart(3, "0");
   }
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  /* ---------- Sala activa ---------- */
   var rooms = Array.prototype.slice.call(document.querySelectorAll("[data-room]"));
-  var links = Array.prototype.slice.call(document.querySelectorAll(".rooms-index a"));
-  if ("IntersectionObserver" in window) {
+  var sectionEl = document.querySelector(".hud-section");
+  if ("IntersectionObserver" in window && sectionEl) {
     var roomObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
-        var idx = entry.target.getAttribute("data-room");
-        links.forEach(function (a) {
-          a.classList.toggle("is-active", a.getAttribute("data-index") === idx);
-        });
+        sectionEl.textContent = entry.target.getAttribute("data-name");
+        delete sectionEl.dataset.scrambled;
+        scramble(sectionEl);
       });
     }, { rootMargin: "-45% 0px -45% 0px" });
     rooms.forEach(function (r) { roomObserver.observe(r); });
@@ -72,6 +109,7 @@
         var el = entry.target;
         el.classList.add("is-visible");
         el.querySelectorAll("[data-count]").forEach(animateCount);
+        el.querySelectorAll("[data-scramble]").forEach(scramble);
         revealObserver.unobserve(el);
       });
     }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });

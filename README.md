@@ -1,29 +1,27 @@
-# Archivo Orbital · Adriana Bello
+# Campaign Studio · Adriana Bello
 
-Portafolio de **Adriana del Pilar Bello Guzmán**: marketing, comunicación corporativa y contenido digital potenciados con IA generativa.
+Portafolio 3D de **Adriana del Pilar Bello Guzmán**: marketing, comunicación corporativa e imagen pública, potenciados con IA generativa.
 
-Concepto visual: **Museo oscuro**. Una galería en penumbra con focos y suelo pulido. En el centro hay una escultura 3D, el *Archivo Orbital*: un núcleo cerámico, anillos de latón y 30 fichas de la trayectoria que se reorganizan en cada sala al hacer scroll.
+Al entrar aparece un **portátil de aluminio champán** con un panel de marketing en vivo. Al hacer scroll se **rompe en fragmentos de cristal**, la cámara viaja por un túnel y de él salen **seis piezas publicitarias**, una por cada etapa profesional, con paneles de datos. Al final el portátil se recompone y muestra el contacto.
 
-## Salas
+## Secciones
 
-| Sala | Contenido | Escultura 3D |
+| # | Sección | Escena 3D |
 | --- | --- | --- |
-| I · La firma | Presentación | Órbita armilar |
-| II · Impacto | Cifras clave del CV | Halo |
-| III · Colección | Experiencia profesional | Hélice cronológica |
-| IV · Laboratorio IA | Método y consola de prompts interactiva | Esfera |
-| V · Capacidades | Competencias, formación, idiomas, herramientas | Muro de archivo |
-| VI · Consulta | Contacto | Órbita |
+| 00 | Inicio | Portátil abriéndose, panel animado |
+| 01 | Perfil + datos de impacto | Estallido del portátil |
+| 02–07 | Piezas: JD Sports, Senado, Flash Noticias, Salud Total, El Transportador, Formación IA | Túnel de fragmentos + pieza publicitaria |
+| 08 | Atelier IA (consola de prompts interactiva) | Fondo del túnel |
+| 09 | Contacto | El portátil se recompone |
 
-## Tecnología
+## Cómo editar
 
-- HTML + CSS + JavaScript sin dependencias de build.
-- [Three.js r160](https://threejs.org/) desde CDN (import map): WebGL, reflejos de suelo, sombras y haces de luz con shader propio.
-- Accesible: respeta `prefers-reduced-motion`, navegación por teclado en la consola y versión sin WebGL.
+- **Textos de experiencia:** `index.html`. Las líneas marcadas con `<!-- REVISAR -->` son textos ampliados que conviene validar.
+- **Piezas publicitarias:** array `POSTERS` al principio de `js/scene.js` (cliente, titular, colores).
+  Para usar **una imagen real**, cópiala en `assets/ads/` y pon su ruta en `image`, por ejemplo `image: "assets/ads/jd.jpg"`.
+- **Casos de IA de la consola:** array `CASES` en `js/ui.js`.
 
 ## Ver en local
-
-Los módulos ES no funcionan abriendo el archivo con doble clic; hace falta un servidor local:
 
 ```bash
 python -m http.server 8000
@@ -32,16 +30,9 @@ python -m http.server 8000
 
 ## Publicar con GitHub Pages
 
-1. En GitHub: **Settings → Pages**.
-2. *Source*: **Deploy from a branch** → rama `main`, carpeta `/ (root)` → **Save**.
-3. En 1–2 minutos estará en `https://altesreich.github.io/mkpilar/`.
+**Settings → Pages → Deploy from a branch → `main` / `(root)` → Save.**
+Dirección: `https://altesreich.github.io/mkpilar/`
 
-## Estructura
+## Tecnología
 
-```
-index.html          Contenido y estructura de salas
-css/styles.css      Dirección de arte (Luxury Tech & Editorial)
-js/scene.js         Escena 3D (Three.js)
-js/ui.js            Navegación, contadores y consola de prompts
-assets/             CV descargable
-```
+HTML, CSS y JavaScript sin build. [Three.js r160](https://threejs.org/) por CDN: fragmentación procedural por triángulos, texturas generadas en canvas (pantalla en vivo, teclado y pósters) y cámara guiada por el scroll. Respeta `prefers-reduced-motion` y tiene versión sin WebGL.
